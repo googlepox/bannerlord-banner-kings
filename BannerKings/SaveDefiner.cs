@@ -193,8 +193,8 @@ namespace BannerKings
             AddClassDefinition(typeof(CourtExpense), 143);
             AddClassDefinition(typeof(Osfeyd), 144);
             AddClassDefinition(typeof(Era), 145);
-            AddClassDefinition(typeof(Disease), 146);
-            AddClassDefinition(typeof(DiseaseData), 147);
+            AddClassDefinition(typeof(Disease), 147);
+            AddClassDefinition(typeof(DiseaseData), 148);
         }
 
         protected override void DefineContainerDefinitions()
