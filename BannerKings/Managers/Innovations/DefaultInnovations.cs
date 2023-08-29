@@ -30,11 +30,11 @@ namespace BannerKings.Managers.Innovations
         public Innovation Aqueducts { get; } = new Innovation("Aqueducts");
         public Innovation Crossbows { get; } = new Innovation("Crossbows");
         public Innovation Manorialism { get; } = new Innovation("Manorialism");
+        public Innovation Sewage { get; } = new Innovation("Sewage");
+        public Innovation Soap { get; } = new Innovation("Soap");
 
-        public override IEnumerable<Innovation> All
-        {
-            get
-            {
+        public override IEnumerable<Innovation> All {
+            get {
                 yield return HeavyPlough;
                 yield return ThreeFieldsSystem;
                 yield return PublicWorks;
@@ -54,6 +54,8 @@ namespace BannerKings.Managers.Innovations
                 yield return Aqueducts;
                 yield return HalfPlateArmor;
                 yield return Theater;
+                yield return Sewage;
+                yield return Soap;
             }
         }
 
@@ -124,7 +126,7 @@ namespace BannerKings.Managers.Innovations
 
             PublicWorks.Initialize(new TextObject("{=d3aY0Bbb}Public Works"),
                new TextObject("{=!}Focused efforts on public infrastructure by the state, such as roads and bridges, allow better development of the economy."),
-               new TextObject("{=!}Increased town prosperity and adm. costs"),
+               new TextObject("{=!}Increased town prosperity and adm. costs \nIncreased sanitation"),
                DefaultEras.Instance.SecondEra,
                Innovation.InnovationType.Civic,
                2000f,
@@ -239,6 +241,24 @@ namespace BannerKings.Managers.Innovations
                 DefaultEras.Instance.ThirdEra,
                 Innovation.InnovationType.Technology,
                 3000f);
+
+            Sewage.Initialize(new TextObject("{=!}Sewage"),
+                new TextObject("{=!}A type of infrastructure used to relay waste away from populated areas. Human waste in settlements has been noted to be a frequent cause of disease outbreaks."),
+                new TextObject("{=!}Increased sanitation\nEnables construction of Sewers"),
+                DefaultEras.Instance.ThirdEra,
+                Innovation.InnovationType.Civic,
+                3000f,
+                null,
+                PublicWorks);
+
+            Soap.Initialize(new TextObject("{=!}Soap"),
+                new TextObject("{=!}Animal fats and scented oils can be combined to form a thick substance useful for cleansing the body. Frequest washing with soap has been cited as a cause for less frequest outbreaks of disease."),
+                new TextObject("{=!}Increased sanitation\nEnables construction of Public Baths"),
+                DefaultEras.Instance.FirstEra,
+                Innovation.InnovationType.Civic,
+                2000f,
+                null,
+                HorseCollar);
         }
 
         public List<Innovation> GetCultureDefaultInnovations(CultureObject culture)

@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-using System.Linq;
-using BannerKings.Behaviours.Criminality;
+﻿using BannerKings.Behaviours.Criminality;
 using BannerKings.Managers;
 using BannerKings.Managers.AI;
 using BannerKings.Managers.Court;
@@ -9,6 +7,7 @@ using BannerKings.Managers.Court.Members;
 using BannerKings.Managers.Court.Members.Tasks;
 using BannerKings.Managers.Cultures;
 using BannerKings.Managers.Decisions;
+using BannerKings.Managers.Diseases;
 using BannerKings.Managers.Education.Books;
 using BannerKings.Managers.Education.Languages;
 using BannerKings.Managers.Education.Lifestyles;
@@ -22,6 +21,8 @@ using BannerKings.Managers.Titles;
 using BannerKings.Managers.Titles.Laws;
 using BannerKings.Models.BKModels;
 using BannerKings.Models.Vanilla;
+using System.Collections.Generic;
+using System.Linq;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.Settlements;
@@ -47,14 +48,30 @@ namespace BannerKings
         public AIBehavior AI = new();
 
         public bool wipeData = false;
-        public PopulationManager PopulationManager { get; private set; }
-        public PolicyManager PolicyManager { get; private set; }
-        public TitleManager TitleManager { get; private set; }
-        public CourtManager CourtManager { get; private set; }
-        public ReligionsManager ReligionsManager { get; private set; }
-        public EducationManager EducationManager { get; private set; }
-        public InnovationsManager InnovationsManager { get; private set; }
-        public GoalManager GoalManager { get; private set; }
+        public PopulationManager PopulationManager {
+            get; private set;
+        }
+        public PolicyManager PolicyManager {
+            get; private set;
+        }
+        public TitleManager TitleManager {
+            get; private set;
+        }
+        public CourtManager CourtManager {
+            get; private set;
+        }
+        public ReligionsManager ReligionsManager {
+            get; private set;
+        }
+        public EducationManager EducationManager {
+            get; private set;
+        }
+        public InnovationsManager InnovationsManager {
+            get; private set;
+        }
+        public GoalManager GoalManager {
+            get; private set;
+        }
 
         public BKConstructionModel ConstructionModel { get; } = new();
         public BKInfluenceModel InfluenceModel { get; } = new();
@@ -140,6 +157,7 @@ namespace BannerKings
             DefaultCourtExpenses.Instance.Initialize();
             DefaultPopulationNames.Instance.Initialize();
             DefaultTitleNames.Instance.Initialize();
+            DefaultDiseases.Instance.Initialize();
             foreach (ITypeInitializer init in modInitializers)
             {
                 init.Initialize();

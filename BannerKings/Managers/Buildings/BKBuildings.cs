@@ -30,6 +30,8 @@ namespace BannerKings.Managers.Buildings
         public BuildingType CourtHouse { get; private set; }
         public BuildingType WarhorseStuds { get; private set; }
         public BuildingType DailyAssimilation { get; private set; }
+        public BuildingType Sewers { get; private set; }
+        public BuildingType PublicBaths { get; private set; }
 
         public override IEnumerable<BuildingType> All
         {
@@ -43,6 +45,8 @@ namespace BannerKings.Managers.Buildings
                 yield return CourtHouse;
                 yield return WarhorseStuds;
                 yield return DailyAssimilation;
+                yield return Sewers;
+                yield return PublicBaths;
                 foreach (var item in ModAdditions)
                 {
                     yield return item;
@@ -115,7 +119,7 @@ namespace BannerKings.Managers.Buildings
 
             Armory = Game.Current.ObjectManager.RegisterPresumedObject(new BuildingType("bk_building_armory"));
             Armory.Initialize(new TextObject("{=sBTMZdyq}Armory"),
-                new TextObject("{=UoZbZaaT}The armory is used to stock and preserve equipment for the town militia. Raises militia quality and provides garrison trainning."),
+                new TextObject("{=UoZbZaaT}The armory is used to stock and preserve equipment for the town militia. Raises militia quality and provides garrison training."),
                 new[]
                 {
                     1500,
@@ -159,9 +163,37 @@ namespace BannerKings.Managers.Buildings
 
             DailyAssimilation = Game.Current.ObjectManager.RegisterPresumedObject(new BuildingType("bk_building_daily_assimilation"));
             DailyAssimilation.Initialize(new TextObject("{=rZOM0Jit}Cultural assimilation"),
-                new TextObject("{=QrcPgzMf}Focus efforts on assimilating local pouplace to your culture. Increases Cultural Presence."),
+                new TextObject("{=QrcPgzMf}Focus efforts on assimilating local populace to your culture. Increases Cultural Presence."),
                 new int[3],
                 BuildingLocation.Daily,
+                new Tuple<BuildingEffectEnum, float, float, float>[]
+                {
+                });
+
+            Sewers = Game.Current.ObjectManager.RegisterPresumedObject(new BuildingType("bk_building_sewers"));
+            Sewers.Initialize(new TextObject("{=!}Sewers"),
+                new TextObject("{=!}A system of underground tunnels and waterways to relay waste away from populated areas. Increases sanitation."),
+                new[]
+                {
+                    2000,
+                    3000,
+                    4000
+                },
+                BuildingLocation.Settlement,
+                new Tuple<BuildingEffectEnum, float, float, float>[]
+                {
+                });
+
+            PublicBaths = Game.Current.ObjectManager.RegisterPresumedObject(new BuildingType("bk_building_baths"));
+            PublicBaths.Initialize(new TextObject("{=!}Public Baths"),
+                new TextObject("{=!}A public forum of pools of water for relaxation, socialization, and cleansing. Increases sanitation."),
+                new[]
+                {
+                    2000,
+                    3000,
+                    4000
+                },
+                BuildingLocation.Settlement,
                 new Tuple<BuildingEffectEnum, float, float, float>[]
                 {
                 });

@@ -75,6 +75,14 @@ namespace BannerKings.Managers.Innovations
                 buildings.Remove(BKBuildings.Instance.Theater);
             }
 
+            if (!HasFinishedInnovation(DefaultInnovations.Instance.Sewage)) {
+                buildings.Remove(BKBuildings.Instance.Sewers);
+            }
+
+            if (!HasFinishedInnovation(DefaultInnovations.Instance.Soap)) {
+                buildings.Remove(BKBuildings.Instance.PublicBaths);
+            }
+
             return buildings;
         }
 

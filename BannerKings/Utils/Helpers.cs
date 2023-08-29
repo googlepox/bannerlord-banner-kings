@@ -1,10 +1,10 @@
+using BannerKings.Managers.Diseases;
+using BannerKings.Managers.Titles;
+using BannerKings.Managers.Traits;
 using System;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Xml;
-using BannerKings.Managers.Titles;
-using BannerKings.Managers.Traits;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.AgentOrigins;
 using TaleWorlds.CampaignSystem.CharacterDevelopment;
@@ -31,7 +31,7 @@ namespace BannerKings.Utils
                 hero.SetTraitLevel(trait, final);
                 if (hero == Hero.MainHero)
                 {
-                    string value = GameTexts.FindText("str_trait_name_" + trait.StringId.ToLower(), 
+                    string value = GameTexts.FindText("str_trait_name_" + trait.StringId.ToLower(),
                         (level + MathF.Abs(trait.MinValue)).ToString())
                         .ToString();
 
@@ -100,8 +100,15 @@ namespace BannerKings.Utils
             }
         }
 
-        internal static string GetRelationDecisionSound() => "event:/ui/notification/relation";
-        internal static string GetKingdomDecisionSound() => "event:/ui/notification/kingdom_decision";
+        internal static string GetRelationDecisionSound()
+        {
+            return "event:/ui/notification/relation";
+        }
+
+        internal static string GetKingdomDecisionSound()
+        {
+            return "event:/ui/notification/kingdom_decision";
+        }
 
         public static void AddCharacterToKeep(Hero hero, Settlement settlement)
         {
@@ -109,7 +116,9 @@ namespace BannerKings.Utils
             var locCharacter = new LocationCharacter(agent, SandBoxManager.Instance.AgentBehaviorManager.AddFixedCharacterBehaviors, null, true, LocationCharacter.CharacterRelations.Neutral, null, true);
 
             settlement.LocationComplex.GetLocationWithId("lordshall")
-                .AddLocationCharacters(delegate { return locCharacter; }, settlement.Culture, LocationCharacter.CharacterRelations.Neutral, 1);
+                .AddLocationCharacters(delegate {
+                    return locCharacter;
+                }, settlement.Culture, LocationCharacter.CharacterRelations.Neutral, 1);
         }
 
         public static void AddCharacterToKeep(CharacterObject character, Settlement settlement)
@@ -118,7 +127,9 @@ namespace BannerKings.Utils
             var locCharacter = new LocationCharacter(agent, SandBoxManager.Instance.AgentBehaviorManager.AddFixedCharacterBehaviors, null, true, LocationCharacter.CharacterRelations.Neutral, null, true);
 
             settlement.LocationComplex.GetLocationWithId("lordshall")
-                .AddLocationCharacters(delegate { return locCharacter; }, settlement.Culture, LocationCharacter.CharacterRelations.Neutral, 1);
+                .AddLocationCharacters(delegate {
+                    return locCharacter;
+                }, settlement.Culture, LocationCharacter.CharacterRelations.Neutral, 1);
         }
 
         public static void AddNotableToKeep(Hero notable, Settlement settlement)
@@ -147,15 +158,17 @@ namespace BannerKings.Utils
             var agent = new AgentData(new SimpleAgentOrigin(settlement.Culture.Musician, 0));
             var locCharacter = new LocationCharacter(agent,
                 new LocationCharacter.AddBehaviorsDelegate(SandBoxManager.Instance.AgentBehaviorManager.AddWandererBehaviors),
-                "musician", 
+                "musician",
                 true,
-                LocationCharacter.CharacterRelations.Neutral, 
+                LocationCharacter.CharacterRelations.Neutral,
                 ActionSetCode.GenerateActionSetNameWithSuffix(agent.AgentMonster, agent.AgentIsFemale, "_musician"),
                 true, false, null, false, false, true);
 
             settlement.LocationComplex.GetLocationWithId("lordshall")
-                .AddLocationCharacters(delegate { return locCharacter; },
-                settlement.Culture, 
+                .AddLocationCharacters(delegate {
+                    return locCharacter;
+                },
+                settlement.Culture,
                 LocationCharacter.CharacterRelations.Neutral, 1);
 
             var townsmanSuffix = FaceGen.GetMonsterWithSuffix(settlement.Culture.Townsman.Race, "_settlement");
@@ -163,16 +176,18 @@ namespace BannerKings.Utils
             var townsman = new LocationCharacter(new AgentData(
                 new SimpleAgentOrigin(settlement.Culture.Townsman, -1, null, default(UniqueTroopDescriptor)))
                 .Monster(tuple.Item2)
-                .Age(MBRandom.RandomInt(30, 60)), 
-                new LocationCharacter.AddBehaviorsDelegate(SandBoxManager.Instance.AgentBehaviorManager.AddOutdoorWandererBehaviors), 
-                null, 
-                false, 
-                LocationCharacter.CharacterRelations.Friendly, 
-                tuple.Item1, 
+                .Age(MBRandom.RandomInt(30, 60)),
+                new LocationCharacter.AddBehaviorsDelegate(SandBoxManager.Instance.AgentBehaviorManager.AddOutdoorWandererBehaviors),
+                null,
+                false,
+                LocationCharacter.CharacterRelations.Friendly,
+                tuple.Item1,
                 true, false, null, false, false, true);
 
             settlement.LocationComplex.GetLocationWithId("lordshall")
-               .AddLocationCharacters(delegate { return townsman; },
+               .AddLocationCharacters(delegate {
+                   return townsman;
+               },
                settlement.Culture,
                LocationCharacter.CharacterRelations.Friendly, 10);
         }
@@ -194,8 +209,7 @@ namespace BannerKings.Utils
             var rosters = roster.GetTroopRoster();
             var count = 0;
 
-            rosters.ForEach(rosterElement =>
-            {
+            rosters.ForEach(rosterElement => {
                 if (filter == null)
                 {
                     if (!rosterElement.Character.IsHero)
@@ -219,7 +233,7 @@ namespace BannerKings.Utils
 
             if (type == PopType.Serfs)
             {
-                switch (cultureId) 
+                switch (cultureId)
                 {
                     case "empire":
                         text = new TextObject("{=5Ym25L00}Servi");
@@ -360,8 +374,8 @@ namespace BannerKings.Utils
 
         public static string GetGenderLawDescription(GenderLaw type)
         {
-            return type == GenderLaw.Agnatic 
-                ? new TextObject("{=EjVOGKj7}Agnatic law favors males. Although females are not completely excluded, they will only be chosen in case a male candidate is not present.").ToString() 
+            return type == GenderLaw.Agnatic
+                ? new TextObject("{=EjVOGKj7}Agnatic law favors males. Although females are not completely excluded, they will only be chosen in case a male candidate is not present.").ToString()
                 : new TextObject("{=M0MP3ysP}Cognatic law sees no distinction between both genders. Candidates are choosen stricly on their merits, as per the context requires.").ToString();
         }
 
@@ -380,7 +394,7 @@ namespace BannerKings.Utils
         {
             TextObject title = null;
 
-            if (culture is {StringId: "sturgia"})
+            if (culture is { StringId: "sturgia" })
             {
                 if (type == GovernmentType.Tribal)
                 {
@@ -432,36 +446,36 @@ namespace BannerKings.Utils
                         title = new TextObject("{=MVjsWtcZ}Emirate");
                         break;
                     case "aserai":
-                    {
-                        if (type == TitleType.County)
                         {
-                            title = new TextObject("{=V4ra7Por}Sheikhdom");
-                        }
-
-                        break;
-                    }
-                    case "empire":
-                    {
-                        if (type == TitleType.Empire)
-                        {
-                                title = new TextObject("{=dSSX7xRm}Imperium");
-                        }
-                        break;
-                    }
-                    case "battania":
-                    {
-                        if (government == GovernmentType.Tribal)
-                        {
-                            title = type switch
+                            if (type == TitleType.County)
                             {
-                                TitleType.Kingdom => new TextObject("{=F0Y49kiT}High-Kingdom"),
-                                TitleType.Dukedom => new TextObject("{=XsyHSqDV}Petty Kingdom"),
-                                _ => title
-                            };
-                        }
+                                title = new TextObject("{=V4ra7Por}Sheikhdom");
+                            }
 
-                        break;
-                    }
+                            break;
+                        }
+                    case "empire":
+                        {
+                            if (type == TitleType.Empire)
+                            {
+                                title = new TextObject("{=dSSX7xRm}Imperium");
+                            }
+                            break;
+                        }
+                    case "battania":
+                        {
+                            if (government == GovernmentType.Tribal)
+                            {
+                                title = type switch
+                                {
+                                    TitleType.Kingdom => new TextObject("{=F0Y49kiT}High-Kingdom"),
+                                    TitleType.Dukedom => new TextObject("{=XsyHSqDV}Petty Kingdom"),
+                                    _ => title
+                                };
+                            }
+
+                            break;
+                        }
                 }
             }
 
@@ -489,8 +503,7 @@ namespace BannerKings.Utils
                 return false;
             }
 
-            ExceptionUtils.TryCatch(() =>
-            {
+            ExceptionUtils.TryCatch(() => {
                 while (nobleRecruit.UpgradeTargets != null && nobleRecruit.UpgradeTargets.Count() > 0)
                 {
                     result = character == nobleRecruit || nobleRecruit.UpgradeTargets.Contains(character);
@@ -503,7 +516,7 @@ namespace BannerKings.Utils
                         nobleRecruit = nobleRecruit.UpgradeTargets[0];
                     }
                 }
-            }, 
+            },
             Type.GetType("BannerKings.Utils.Helpers").Name,
             false);
 
@@ -530,7 +543,7 @@ namespace BannerKings.Utils
                 return ConsumptionType.Luxury;
             }
 
-            if (id is "wool" or "pottery" or "cotton" or "flax" or "linen" or "leather" or "tools" 
+            if (id is "wool" or "pottery" or "cotton" or "flax" or "linen" or "leather" or "tools"
                 || id.EndsWith("3") || id.Contains("horse"))
             {
                 return ConsumptionType.Industrial;
@@ -573,6 +586,32 @@ namespace BannerKings.Utils
             xmlDocument.LoadXml(xml);
             streamReader.Close();
             return xmlDocument;
+        }
+
+        public static Disease GetDiseaseFromTrait(TraitObject trait)
+        {
+            string traitId = trait.StringId;
+            foreach (Disease disease in DefaultDiseases.Instance.All)
+            {
+                if (disease.StringId == traitId.ToLower())
+                {
+                    return disease;
+                }
+            }
+            return null;
+        }
+
+        public static TraitObject GetTraitFromDisease(Disease disease)
+        {
+            string diseaseId = disease.StringId;
+            foreach (TraitObject traitObject in BKTraits.Instance.DiseaseTraits)
+            {
+                if (disease.StringId == traitObject.StringId.ToLower())
+                {
+                    return traitObject;
+                }
+            }
+            return null;
         }
     }
 }

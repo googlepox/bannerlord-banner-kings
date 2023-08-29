@@ -25,30 +25,38 @@ namespace BannerKings.Managers.Traits
 
         public TraitObject Castrated { get; } = new TraitObject("Castrated");
 
+        public TraitObject DiseasePlague { get; } = new TraitObject("Plague");
+
+        public TraitObject DiseaseFlu { get; } = new TraitObject("Flu");
+
+        public TraitObject DiseaseConsumption { get; } = new TraitObject("Consumption");
+
+        public TraitObject DiseaseTyphus { get; } = new TraitObject("Typhus");
+
+        public TraitObject DiseaseMeasles { get; } = new TraitObject("Syphilis");
+
+        public TraitObject DiseaseSyphilis { get; } = new TraitObject("Syphilis");
+
+        public TraitObject DiseaseSmallpox { get; } = new TraitObject("Smallpox");
+
         public override IEnumerable<TraitObject> All => throw new NotImplementedException();
 
-        public IEnumerable<TraitObject> PresetTraits
-        {
-            get
-            {
+        public IEnumerable<TraitObject> PresetTraits {
+            get {
                 yield return PresetScholar;
             }
         }
 
-        public IEnumerable<TraitObject> PoliticalTraits
-        {
-            get
-            {
+        public IEnumerable<TraitObject> PoliticalTraits {
+            get {
                 yield return DefaultTraits.Oligarchic;
                 yield return DefaultTraits.Authoritarian;
                 yield return DefaultTraits.Egalitarian;
             }
         }
 
-        public IEnumerable<TraitObject> PersonalityTraits
-        {
-            get
-            {
+        public IEnumerable<TraitObject> PersonalityTraits {
+            get {
                 yield return DefaultTraits.Honor;
                 yield return DefaultTraits.Calculating;
                 yield return DefaultTraits.Mercy;
@@ -63,29 +71,35 @@ namespace BannerKings.Managers.Traits
             }
         }
 
-        public IEnumerable<TraitObject> AptitudeTraits
-        {
-            get
-            {
+        public IEnumerable<TraitObject> AptitudeTraits {
+            get {
                 yield return AptitudeViolence;
                 yield return AptitudeErudition;
                 yield return AptitudeSocializing;
             }
         }
 
-        public IEnumerable<TraitObject> LifestyleTraits 
-        { 
-            get
-            {
+        public IEnumerable<TraitObject> LifestyleTraits {
+            get {
                 yield return Musician;
-            } 
+            }
         }
 
-        public IEnumerable<TraitObject> MedicalTraits
-        {
-            get
-            {
+        public IEnumerable<TraitObject> MedicalTraits {
+            get {
                 yield return Castrated;
+            }
+        }
+
+        public IEnumerable<TraitObject> DiseaseTraits {
+            get {
+                yield return DiseasePlague;
+                yield return DiseaseFlu;
+                yield return DiseaseConsumption;
+                yield return DiseaseTyphus;
+                yield return DiseaseMeasles;
+                yield return DiseaseSyphilis;
+                yield return DiseaseSmallpox;
             }
         }
 
@@ -144,6 +158,14 @@ namespace BannerKings.Managers.Traits
                 true,
                 -2,
                 2);
+
+            DiseasePlague.Initialize(new TextObject("Plague"), new TextObject("{=!}"), true, 0, 3);
+            DiseaseFlu.Initialize(new TextObject("Flu"), new TextObject("{=!}"), true, 0, 3);
+            DiseaseConsumption.Initialize(new TextObject("Consumption"), new TextObject("{=!}"), true, 0, 3);
+            DiseaseTyphus.Initialize(new TextObject("Typhus"), new TextObject("{=!}"), true, 0, 3);
+            DiseaseMeasles.Initialize(new TextObject("Measles"), new TextObject("{=!}"), true, 0, 3);
+            DiseaseSyphilis.Initialize(new TextObject("Syphilis"), new TextObject("{=!}"), true, 0, 3);
+            DiseaseSmallpox.Initialize(new TextObject("Smallpox"), new TextObject("{=!}"), true, 0, 3);
         }
     }
 }

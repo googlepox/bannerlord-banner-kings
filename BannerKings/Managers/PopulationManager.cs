@@ -1,12 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using BannerKings.Extensions;
+﻿using BannerKings.Extensions;
 using BannerKings.Managers.Institutions.Guilds;
 using BannerKings.Managers.Items;
 using BannerKings.Managers.Populations;
 using BannerKings.Managers.Populations.Estates;
 using BannerKings.Managers.Populations.Villages;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.Settlements;
@@ -45,11 +45,20 @@ namespace BannerKings.Managers
             Estates = new Dictionary<Hero, List<Estate>>();
         }
 
-        [SaveableProperty(1)] private Dictionary<Settlement, PopulationData> Populations { get; set; }
+        [SaveableProperty(1)]
+        private Dictionary<Settlement, PopulationData> Populations {
+            get; set;
+        }
 
-        [SaveableProperty(2)] private List<MobileParty> Caravans { get; set; }
+        [SaveableProperty(2)]
+        private List<MobileParty> Caravans {
+            get; set;
+        }
 
-        [SaveableProperty(3)] private Dictionary<Hero, List<Estate>> Estates { get; set; }
+        [SaveableProperty(3)]
+        private Dictionary<Hero, List<Estate>> Estates {
+            get; set;
+        }
 
         public MBReadOnlyList<MobileParty> AllParties => new MBReadOnlyList<MobileParty>(Caravans);
 
@@ -63,6 +72,7 @@ namespace BannerKings.Managers
             foreach (var data in Populations.Values)
             {
                 data.VillageData?.ReInitializeBuildings();
+                data.DiseaseData?.ActiveDisease?.PostInitialize();
             }
         }
 
@@ -167,10 +177,10 @@ namespace BannerKings.Managers
             }
         }
 
-        public void AddEstate(Estate estate) 
+        public void AddEstate(Estate estate)
         {
             var currentOwner = estate.Owner;
-            if (currentOwner != null) 
+            if (currentOwner != null)
             {
                 if (Estates.ContainsKey(currentOwner))
                 {
@@ -183,7 +193,7 @@ namespace BannerKings.Managers
                 {
                     Estates.Add(currentOwner, new List<Estate>() { estate });
                 }
-            } 
+            }
         }
 
         public List<Estate> GetEstates(Hero owner)
@@ -296,7 +306,7 @@ namespace BannerKings.Managers
 
                 productions.Add(new ValueTuple<ItemObject, float>(BKItems.Instance.Bread, bread));
             }
-            
+
 
             return productions;
         }
@@ -362,16 +372,16 @@ namespace BannerKings.Managers
             var desiredTypes = GetDesiredPopTypes(settlement, true);
             var classes = new List<PopulationClass>();
 
-            var nobles = (int) (popQuantityRef *
+            var nobles = (int)(popQuantityRef *
                                 MBRandom.RandomFloatRanged(desiredTypes[PopType.Nobles][0],
                                     desiredTypes[PopType.Nobles][1]));
             var craftsmen = !settlement.IsVillage
-                ? (int) (popQuantityRef *
+                ? (int)(popQuantityRef *
                          MBRandom.RandomFloatRanged(desiredTypes[PopType.Craftsmen][0], desiredTypes[PopType.Craftsmen][1]))
                 : 0;
-            var serfs = (int) (popQuantityRef *
+            var serfs = (int)(popQuantityRef *
                                MBRandom.RandomFloatRanged(desiredTypes[PopType.Serfs][0], desiredTypes[PopType.Serfs][1]));
-            var slaves = (int) (popQuantityRef *
+            var slaves = (int)(popQuantityRef *
                                 MBRandom.RandomFloatRanged(desiredTypes[PopType.Slaves][0],
                                     desiredTypes[PopType.Slaves][1]));
 
@@ -404,7 +414,7 @@ namespace BannerKings.Managers
                 ratio = MBRandom.RandomFloatRanged(popRatios[type][0], popRatios[type][1]);
             }
 
-            var currentRatio = pops / (double) data.TotalPop;
+            var currentRatio = pops / (double)data.TotalPop;
             return currentRatio > ratio;
         }
 
@@ -427,28 +437,28 @@ namespace BannerKings.Managers
             if (settlement.IsCastle)
             {
                 var prosperityFactor = 0.0001f * settlement.Prosperity + 1f;
-                return MBRandom.RandomInt((int) (2000 * prosperityFactor), (int) (3000 * prosperityFactor));
+                return MBRandom.RandomInt((int)(2000 * prosperityFactor), (int)(3000 * prosperityFactor));
             }
 
             if (settlement.IsVillage)
             {
-                return MBRandom.RandomInt((int) settlement.Village.Hearth * 4, (int) settlement.Village.Hearth * 6);
+                return MBRandom.RandomInt((int)settlement.Village.Hearth * 4, (int)settlement.Village.Hearth * 6);
             }
 
             if (settlement.IsTown)
             {
                 var prosperityFactor = 0.0001f * settlement.Prosperity + 1f;
-                if (settlement.Owner is {IsFactionLeader: true})
+                if (settlement.Owner is { IsFactionLeader: true })
                 {
                     prosperityFactor *= 1.2f;
                 }
 
                 if (!IsMetropolis(settlement))
                 {
-                    return MBRandom.RandomInt((int) (8000 * prosperityFactor), (int) (15000 * prosperityFactor));
+                    return MBRandom.RandomInt((int)(8000 * prosperityFactor), (int)(15000 * prosperityFactor));
                 }
 
-                return MBRandom.RandomInt((int) (20000 * prosperityFactor), (int) (25000 * prosperityFactor));
+                return MBRandom.RandomInt((int)(20000 * prosperityFactor), (int)(25000 * prosperityFactor));
             }
 
             return 0;
@@ -468,7 +478,7 @@ namespace BannerKings.Managers
         {
             var desiredTypes = GetDesiredPopTypes(settlement);
             var data = GetPopData(settlement);
-            var max = (int) (data.TotalPop * desiredTypes[type][1]);
+            var max = (int)(data.TotalPop * desiredTypes[type][1]);
             var current = data.GetTypeCount(type);
             return current - max;
         }
@@ -479,7 +489,7 @@ namespace BannerKings.Managers
             var slaveFactor = 1f;
             float serfFactor = 1f;
             float tenantFactor = 1f;
-           
+
             if (!firstTime)
             {
                 nobleFactor = BannerKingsConfig.Instance.GrowthModel.CalculatePopulationClassDemand(settlement, PopType.Nobles).ResultNumber;

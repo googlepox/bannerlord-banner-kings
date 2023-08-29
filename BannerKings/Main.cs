@@ -1,12 +1,15 @@
 ﻿using BannerKings.Behaviours;
 using BannerKings.Behaviours.Criminality;
+using BannerKings.Behaviours.Diseases;
 using BannerKings.Behaviours.Feasts;
+using BannerKings.Behaviours.Innovations;
 using BannerKings.Behaviours.Marriage;
 using BannerKings.Behaviours.PartyNeeds;
 using BannerKings.Behaviours.Retainer;
 using BannerKings.Behaviours.Workshops;
 using BannerKings.Managers.Buildings;
 using BannerKings.Managers.Innovations;
+using BannerKings.Managers.Innovations.Eras;
 using BannerKings.Managers.Kingdoms.Policies;
 using BannerKings.Managers.Skills;
 using BannerKings.Managers.Traits;
@@ -18,8 +21,6 @@ using HarmonyLib;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.Core;
 using TaleWorlds.MountAndBlade;
-using BannerKings.Managers.Innovations.Eras;
-using BannerKings.Behaviours.Innovations;
 
 namespace BannerKings
 {
@@ -34,7 +35,7 @@ namespace BannerKings
             {
                 return;
             }
-            
+
             campaignStarter.AddBehavior(new BKSettlementBehavior());
             campaignStarter.AddBehavior(new BKEducationBehavior());
             campaignStarter.AddBehavior(new BKSettlementActions());
@@ -64,13 +65,14 @@ namespace BannerKings
             {
                 campaignStarter.AddBehavior(new BKFeastBehavior());
             }
-            
+
             campaignStarter.AddBehavior(new BKWorkshopBehavior());
             campaignStarter.AddBehavior(new BKGentryBehavior());
             campaignStarter.AddBehavior(new BKBanditBehavior());
             campaignStarter.AddBehavior(new BKCriminalityBehavior());
             campaignStarter.AddBehavior(new BKTraitBehavior());
             campaignStarter.AddBehavior(new BKPartyNeedsBehavior());
+            campaignStarter.AddBehavior(new BKDiseaseBehavior());
 
             campaignStarter.AddModel(new BKPrisonerModel());
             campaignStarter.AddModel(BannerKingsConfig.Instance.CompanionModel);
@@ -117,7 +119,7 @@ namespace BannerKings
             campaignStarter.AddModel(new BKCombatXpModel());
             campaignStarter.AddModel(new BKBattleMoraleModel());
             campaignStarter.AddModel(BannerKingsConfig.Instance.LearningModel);
-            campaignStarter.AddModel(BannerKingsConfig.Instance.KingdomDecisionModel);  
+            campaignStarter.AddModel(BannerKingsConfig.Instance.KingdomDecisionModel);
             campaignStarter.AddModel(new BKPartyFoodBuyingModel());
             campaignStarter.AddModel(new BKPregnancyModel());
             campaignStarter.AddModel(new BKPartyHealingModel());
@@ -130,7 +132,7 @@ namespace BannerKings
 
             BKAttributes.Instance.Initialize();
             BKSkills.Instance.Initialize();
-            BKPerks.Instance.Initialize();   
+            BKPerks.Instance.Initialize();
             BKPolicies.Instance.Initialize();
             DefaultEras.Instance.Initialize();
             DefaultInnovations.Instance.Initialize();

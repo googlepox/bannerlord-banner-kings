@@ -1,18 +1,17 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using BannerKings.Managers.Institutions.Guilds;
+﻿using BannerKings.Managers.Institutions.Guilds;
 using BannerKings.Managers.Institutions.Religions;
 using BannerKings.Managers.Populations.Estates;
 using BannerKings.Managers.Titles;
 using BannerKings.Models.BKModels;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.Core;
 using TaleWorlds.Library;
 using TaleWorlds.SaveSystem;
 using static BannerKings.Managers.PopulationManager;
-using static HarmonyLib.Code;
 
 namespace BannerKings.Managers.Populations
 {
@@ -28,14 +27,15 @@ namespace BannerKings.Managers.Populations
             if (cultures == null)
             {
                 var cultureData = new CultureDataClass(settlement.Culture, 1f, 1f);
-                cultures = new List<CultureDataClass> {cultureData};
+                cultures = new List<CultureDataClass> { cultureData };
             }
 
             this.cultureData = new CultureData(settlement.Owner, cultures);
             float total = TotalPop;
             float nobles = classes.First(x => x.type == PopType.Nobles).count;
-            militaryData = new MilitaryData(settlement, (int) (total * 0.04f), (int) (nobles * 0.08f));
+            militaryData = new MilitaryData(settlement, (int)(total * 0.04f), (int)(nobles * 0.08f));
             landData = new LandData(this);
+            diseaseData = new DiseaseData(this, settlement);
 
             if (settlement.Village != null)
             {
@@ -48,40 +48,88 @@ namespace BannerKings.Managers.Populations
             }
         }
 
-        [SaveableProperty(1)] private List<PopulationClass> classes { get; set; }
+        [SaveableProperty(1)]
+        private List<PopulationClass> classes {
+            get; set;
+        }
 
-        [SaveableProperty(2)] private float stability { get; set; }
+        [SaveableProperty(2)]
+        private float stability {
+            get; set;
+        }
 
-        [SaveableProperty(3)] private Settlement settlement { get; set; }
+        [SaveableProperty(3)]
+        private Settlement settlement {
+            get; set;
+        }
 
-        [SaveableProperty(4)] private CultureData cultureData { get; set; }
+        [SaveableProperty(4)]
+        private CultureData cultureData {
+            get; set;
+        }
 
-        [SaveableProperty(5)] private VillageData villageData { get; set; }
+        [SaveableProperty(5)]
+        private VillageData villageData {
+            get; set;
+        }
 
-        [SaveableProperty(6)] private LandData landData { get; set; }
+        [SaveableProperty(6)]
+        private LandData landData {
+            get; set;
+        }
 
-        [SaveableProperty(7)] private MilitaryData militaryData { get; set; }
+        [SaveableProperty(7)]
+        private MilitaryData militaryData {
+            get; set;
+        }
 
-        [SaveableProperty(8)] private EconomicData economicData { get; set; }
+        [SaveableProperty(8)]
+        private EconomicData economicData {
+            get; set;
+        }
 
-        [SaveableProperty(9)] private TournamentData tournamentData { get; set; }
+        [SaveableProperty(9)]
+        private TournamentData tournamentData {
+            get; set;
+        }
 
-        [SaveableProperty(10)] private TitleData titleData { get; set; }
+        [SaveableProperty(10)]
+        private TitleData titleData {
+            get; set;
+        }
 
-        [SaveableProperty(11)] private float autonomy { get; set; }
+        [SaveableProperty(11)]
+        private float autonomy {
+            get; set;
+        }
 
-        [SaveableProperty(12)] private ReligionData religionData { get; set; }
+        [SaveableProperty(12)]
+        private ReligionData religionData {
+            get; set;
+        }
 
-        [SaveableProperty(13)] private MineralData mineralData { get; set; }
+        [SaveableProperty(13)]
+        private MineralData mineralData {
+            get; set;
+        }
 
-        [SaveableProperty(14)] public EstateData EstateData { get; private set; }
+        [SaveableProperty(14)]
+        public EstateData EstateData {
+            get; private set;
+        }
+
+        [SaveableProperty(15)]
+        private DiseaseData diseaseData {
+            get; set;
+        }
+
+        public DiseaseData DiseaseData => diseaseData;
 
         public CultureData CultureData => cultureData;
         public MilitaryData MilitaryData => militaryData;
         public LandData LandData => landData;
         public EconomicData EconomicData => economicData;
-        public TournamentData TournamentData
-        {
+        public TournamentData TournamentData {
             get => tournamentData;
             set => tournamentData = value;
         }
@@ -92,10 +140,8 @@ namespace BannerKings.Managers.Populations
 
         public ExplainedNumber Foreigner => new BKForeignerModel().CalculateEffect(settlement);
 
-        public int TotalPop
-        {
-            get
-            {
+        public int TotalPop {
+            get {
                 var total = 0;
                 classes.ForEach(popClass => total += popClass.count);
                 return total;
@@ -105,11 +151,9 @@ namespace BannerKings.Managers.Populations
         public Settlement Settlement => settlement;
         public ExplainedNumber Growth => BannerKingsConfig.Instance.GrowthModel.CalculateEffect(settlement, this);
 
-        public float Stability
-        {
+        public float Stability {
             get => stability;
-            set
-            {
+            set {
                 if (value != stability)
                 {
                     stability = MBMath.ClampFloat(value, 0f, 1f);
@@ -117,11 +161,9 @@ namespace BannerKings.Managers.Populations
             }
         }
 
-        public float Autonomy
-        {
+        public float Autonomy {
             get => autonomy;
-            set
-            {
+            set {
                 if (value != autonomy)
                 {
                     autonomy = MBMath.ClampFloat(value, 0f, 1f);
@@ -132,11 +174,9 @@ namespace BannerKings.Managers.Populations
         public ExplainedNumber NotableSupport =>
             BannerKingsConfig.Instance.StabilityModel.CalculateNotableSupport(settlement);
 
-        public List<PopulationClass> Classes
-        {
+        public List<PopulationClass> Classes {
             get => classes;
-            set
-            {
+            set {
                 if (value != classes)
                 {
                     classes = value;
@@ -156,7 +196,7 @@ namespace BannerKings.Managers.Populations
                 var divisibleNegative = pops * -1f > 20;
                 if (pops > 20 || divisibleNegative)
                 {
-                    var fractions = (int) (pops / (divisibleNegative ? -20f : 20f));
+                    var fractions = (int)(pops / (divisibleNegative ? -20f : 20f));
                     var reminder = pops % 20;
                     for (var i = 0; i < fractions; i++)
                     {
@@ -214,7 +254,7 @@ namespace BannerKings.Managers.Populations
                     UpdatePopType(PopType.Craftsmen, random);
                 }
             }
-            
+
             if (dic[PopType.Tenants][1] > dic[PopType.Serfs][1] && currentDic[PopType.Tenants] < currentDic[PopType.Serfs])
             {
                 var random = MBMath.ClampInt(MBRandom.RandomInt(0, 25), 0, GetTypeCount(PopType.Serfs));
@@ -272,25 +312,24 @@ namespace BannerKings.Managers.Populations
                 var desiredTypes = GetDesiredPopTypes(settlement);
                 var typesList = new List<ValueTuple<PopType, float>>();
 
-                classes.ForEach(popClass =>
-                {
+                classes.ForEach(popClass => {
                     var type = popClass.type;
                     switch (pops)
                     {
                         case < 0 when popClass.count >= pops:
-                        {
-                            var hasExcess = GetCurrentTypeFraction(type) > desiredTypes[type][1];
-                            typesList.Add(new ValueTuple<PopType, float>(popClass.type,
-                                (float) popClass.type * 5f + desiredTypes[type][0] * (hasExcess ? 2f : 1f)));
-                            break;
-                        }
+                            {
+                                var hasExcess = GetCurrentTypeFraction(type) > desiredTypes[type][1];
+                                typesList.Add(new ValueTuple<PopType, float>(popClass.type,
+                                    (float)popClass.type * 5f + desiredTypes[type][0] * (hasExcess ? 2f : 1f)));
+                                break;
+                            }
                         case > 0:
-                        {
-                            var isLacking = GetCurrentTypeFraction(type) < desiredTypes[type][0];
-                            typesList.Add(new ValueTuple<PopType, float>(popClass.type,
-                                desiredTypes[type][0] * (isLacking ? 2f : 1f)));
-                            break;
-                        }
+                            {
+                                var isLacking = GetCurrentTypeFraction(type) < desiredTypes[type][0];
+                                typesList.Add(new ValueTuple<PopType, float>(popClass.type,
+                                    desiredTypes[type][0] * (isLacking ? 2f : 1f)));
+                                break;
+                            }
                     }
                 });
 
@@ -299,7 +338,10 @@ namespace BannerKings.Managers.Populations
             }
         }
 
-        public void UpdatePopFromSoldiers(CharacterObject character, int count) => MilitaryData.AddManpowerFromSoldiers(this, count, character);    
+        public void UpdatePopFromSoldiers(CharacterObject character, int count)
+        {
+            MilitaryData.AddManpowerFromSoldiers(this, count, character);
+        }
 
         public void UpdatePopType(PopType type, int count, bool stateSlaves = false)
         {
@@ -347,13 +389,13 @@ namespace BannerKings.Managers.Populations
 
         public float GetCurrentTypeFraction(PopType type)
         {
-            return GetTypeCount(type) / (float) TotalPop;
+            return GetTypeCount(type) / (float)TotalPop;
         }
 
         internal override void Update(PopulationData data)
         {
             var model = BannerKingsConfig.Instance.GrowthModel;
-            var growthFactor = (int) model.CalculateEffect(settlement, this).ResultNumber;
+            var growthFactor = (int)model.CalculateEffect(settlement, this).ResultNumber;
             UpdatePopulation(settlement, growthFactor, PopType.None);
             var stabilityModel = BannerKingsConfig.Instance.StabilityModel;
             Stability += stabilityModel.CalculateEffect(settlement).ResultNumber;
@@ -393,6 +435,26 @@ namespace BannerKings.Managers.Populations
             }
 
             EstateData?.Update(this);
+
+            if (diseaseData == null)
+            {
+                diseaseData = new DiseaseData(this, settlement);
+            }
+
+            diseaseData?.Update(this);
+            if (diseaseData.TerminalCases > 0)
+            {
+                int terminalCases = diseaseData.TerminalCases;
+                float weightedPop;
+                foreach (PopulationClass popClass in classes)
+                {
+                    weightedPop = popClass.count / TotalPop;
+                    if (weightedPop > MBRandom.RandomFloat)
+                    {
+                        UpdatePopulation(settlement, -terminalCases, popClass.type);
+                    }
+                }
+            }
         }
     }
 }

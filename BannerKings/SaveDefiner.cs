@@ -1,5 +1,4 @@
-﻿using System.Collections.Generic;
-using BannerKings.Behaviours.Criminality;
+﻿using BannerKings.Behaviours.Criminality;
 using BannerKings.Behaviours.Feasts;
 using BannerKings.Behaviours.Marriage;
 using BannerKings.Behaviours.PartyNeeds;
@@ -11,6 +10,7 @@ using BannerKings.Managers.Court;
 using BannerKings.Managers.Court.Grace;
 using BannerKings.Managers.Court.Members.Tasks;
 using BannerKings.Managers.Decisions;
+using BannerKings.Managers.Diseases;
 using BannerKings.Managers.Duties;
 using BannerKings.Managers.Education;
 using BannerKings.Managers.Education.Books;
@@ -39,6 +39,7 @@ using BannerKings.Managers.Populations.Tournament;
 using BannerKings.Managers.Populations.Villages;
 using BannerKings.Managers.Titles;
 using BannerKings.Managers.Titles.Laws;
+using System.Collections.Generic;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.CharacterDevelopment;
 using TaleWorlds.CampaignSystem.Party;
@@ -192,6 +193,8 @@ namespace BannerKings
             AddClassDefinition(typeof(CourtExpense), 143);
             AddClassDefinition(typeof(Osfeyd), 144);
             AddClassDefinition(typeof(Era), 145);
+            AddClassDefinition(typeof(Disease), 146);
+            AddClassDefinition(typeof(DiseaseData), 147);
         }
 
         protected override void DefineContainerDefinitions()
@@ -236,7 +239,7 @@ namespace BannerKings
             ConstructContainerDefinition(typeof(List<Estate>));
             ConstructContainerDefinition(typeof(Dictionary<PopType, float>));
             ConstructContainerDefinition(typeof(Dictionary<Kingdom, Town>));
-            ConstructContainerDefinition(typeof(Dictionary<Town, Feast>)); 
+            ConstructContainerDefinition(typeof(Dictionary<Town, Feast>));
             ConstructContainerDefinition(typeof(Dictionary<Hero, List<Estate>>));
             ConstructContainerDefinition(typeof(Dictionary<Workshop, WorkshopData>));
             ConstructContainerDefinition(typeof(Dictionary<Hero, MobileParty>));
