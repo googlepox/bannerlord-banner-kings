@@ -55,6 +55,8 @@ using static BannerKings.Managers.Policies.BKTaxPolicy;
 using static BannerKings.Managers.Policies.BKWorkforcePolicy;
 using static BannerKings.Managers.PopulationManager;
 using static BannerKings.Managers.Populations.Estates.Estate;
+using CasusBelli = BannerKings.Behaviours.Diplomacy.Wars.CasusBelli;
+using BannerKings.Managers.Institutions.Religions.Faiths.Eastern;
 
 namespace BannerKings
 {
@@ -193,6 +195,7 @@ namespace BannerKings
             AddClassDefinition(typeof(CourtExpense), 143);
             AddClassDefinition(typeof(Osfeyd), 144);
             AddClassDefinition(typeof(Era), 145);
+            AddClassDefinition(typeof(SixWinds), 146);
             AddClassDefinition(typeof(Disease), 147);
             AddClassDefinition(typeof(DiseaseData), 148);
         }
