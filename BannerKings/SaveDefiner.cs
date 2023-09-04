@@ -22,6 +22,7 @@ using BannerKings.Managers.Institutions.Religions;
 using BannerKings.Managers.Institutions.Religions.Faiths;
 using BannerKings.Managers.Institutions.Religions.Faiths.Asera;
 using BannerKings.Managers.Institutions.Religions.Faiths.Battania;
+using BannerKings.Managers.Institutions.Religions.Faiths.Eastern;
 using BannerKings.Managers.Institutions.Religions.Faiths.Empire;
 using BannerKings.Managers.Institutions.Religions.Faiths.Northern;
 using BannerKings.Managers.Institutions.Religions.Faiths.Rites;
@@ -38,6 +39,7 @@ using BannerKings.Managers.Populations.Estates;
 using BannerKings.Managers.Populations.Tournament;
 using BannerKings.Managers.Populations.Villages;
 using BannerKings.Managers.Titles;
+using BannerKings.Managers.Titles.Governments;
 using BannerKings.Managers.Titles.Laws;
 using System.Collections.Generic;
 using TaleWorlds.CampaignSystem;
@@ -55,8 +57,6 @@ using static BannerKings.Managers.Policies.BKTaxPolicy;
 using static BannerKings.Managers.Policies.BKWorkforcePolicy;
 using static BannerKings.Managers.PopulationManager;
 using static BannerKings.Managers.Populations.Estates.Estate;
-using BannerKings.Managers.Institutions.Religions.Faiths.Eastern;
-using BannerKings.Managers.Titles.Governments;
 
 namespace BannerKings
 {
@@ -194,8 +194,8 @@ namespace BannerKings
             AddClassDefinition(typeof(Succession), 148);
             AddClassDefinition(typeof(Inheritance), 149);
             AddClassDefinition(typeof(GenderLaw), 150);
-            AddClassDefinition(typeof(Disease), 147);
-            AddClassDefinition(typeof(DiseaseData), 148);
+            AddClassDefinition(typeof(Disease), 151);
+            AddClassDefinition(typeof(DiseaseData), 152);
         }
 
         protected override void DefineContainerDefinitions()
