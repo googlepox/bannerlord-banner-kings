@@ -116,7 +116,8 @@ namespace BannerKings.Utils
             var locCharacter = new LocationCharacter(agent, SandBoxManager.Instance.AgentBehaviorManager.AddFixedCharacterBehaviors, null, true, LocationCharacter.CharacterRelations.Neutral, null, true);
 
             settlement.LocationComplex.GetLocationWithId("lordshall")
-                .AddLocationCharacters(delegate {
+                .AddLocationCharacters(delegate
+                {
                     return locCharacter;
                 }, settlement.Culture, LocationCharacter.CharacterRelations.Neutral, 1);
         }
@@ -127,7 +128,8 @@ namespace BannerKings.Utils
             var locCharacter = new LocationCharacter(agent, SandBoxManager.Instance.AgentBehaviorManager.AddFixedCharacterBehaviors, null, true, LocationCharacter.CharacterRelations.Neutral, null, true);
 
             settlement.LocationComplex.GetLocationWithId("lordshall")
-                .AddLocationCharacters(delegate {
+                .AddLocationCharacters(delegate
+                {
                     return locCharacter;
                 }, settlement.Culture, LocationCharacter.CharacterRelations.Neutral, 1);
         }
@@ -165,7 +167,8 @@ namespace BannerKings.Utils
                 true, false, null, false, false, true);
 
             settlement.LocationComplex.GetLocationWithId("lordshall")
-                .AddLocationCharacters(delegate {
+                .AddLocationCharacters(delegate
+                {
                     return locCharacter;
                 },
                 settlement.Culture,
@@ -185,7 +188,8 @@ namespace BannerKings.Utils
                 true, false, null, false, false, true);
 
             settlement.LocationComplex.GetLocationWithId("lordshall")
-               .AddLocationCharacters(delegate {
+               .AddLocationCharacters(delegate
+               {
                    return townsman;
                },
                settlement.Culture,
@@ -209,7 +213,8 @@ namespace BannerKings.Utils
             var rosters = roster.GetTroopRoster();
             var count = 0;
 
-            rosters.ForEach(rosterElement => {
+            rosters.ForEach(rosterElement =>
+            {
                 if (filter == null)
                 {
                     if (!rosterElement.Character.IsHero)
@@ -389,34 +394,7 @@ namespace BannerKings.Utils
                 _ => new TextObject("{=QJ1pjKxw}Satisfaction over availability of food types.").ToString()
             };
         }
-
-        public static string GetGovernmentString(GovernmentType type, CultureObject culture = null)
-        {
-            TextObject title = null;
-
-            if (culture is { StringId: "sturgia" })
-            {
-                if (type == GovernmentType.Tribal)
-                {
-                    title = new TextObject("{=jz2SCLZS}Grand-Principality");
-                }
-            }
-
-            if (title == null)
-            {
-                title = type switch
-                {
-                    GovernmentType.Feudal => new TextObject("{=7x3HJ29f}Kingdom"),
-                    GovernmentType.Tribal => new TextObject("{=SuG07DUi}High Kingship"),
-                    GovernmentType.Imperial => new TextObject("{=uEBLsMAb}Empire"),
-                    _ => new TextObject("{=MSaLufNx}Republic")
-                };
-            }
-
-            return title.ToString();
-        }
-
-        public static string GetTitlePrefix(TitleType type, GovernmentType government, CultureObject culture = null)
+        public static string GetTitlePrefix(TitleType type, CultureObject culture = null)
         {
             TextObject title = null;
 
@@ -476,6 +454,7 @@ namespace BannerKings.Utils
 
                             break;
                         }
+                        */
                 }
             }
 
@@ -503,7 +482,8 @@ namespace BannerKings.Utils
                 return false;
             }
 
-            ExceptionUtils.TryCatch(() => {
+            ExceptionUtils.TryCatch(() =>
+            {
                 while (nobleRecruit.UpgradeTargets != null && nobleRecruit.UpgradeTargets.Count() > 0)
                 {
                     result = character == nobleRecruit || nobleRecruit.UpgradeTargets.Contains(character);

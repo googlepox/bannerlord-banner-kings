@@ -11,6 +11,7 @@ using BannerKings.Managers.Diseases;
 using BannerKings.Managers.Education.Books;
 using BannerKings.Managers.Education.Languages;
 using BannerKings.Managers.Education.Lifestyles;
+using BannerKings.Managers.Helpers;
 using BannerKings.Managers.Institutions.Religions;
 using BannerKings.Managers.Institutions.Religions.Doctrines;
 using BannerKings.Managers.Institutions.Religions.Faiths;
@@ -18,7 +19,9 @@ using BannerKings.Managers.Policies;
 using BannerKings.Managers.Populations;
 using BannerKings.Managers.Populations.Villages;
 using BannerKings.Managers.Titles;
+using BannerKings.Managers.Titles.Governments;
 using BannerKings.Managers.Titles.Laws;
+using BannerKings.Managers.Traits;
 using BannerKings.Models.BKModels;
 using BannerKings.Models.Vanilla;
 using System.Collections.Generic;
@@ -48,28 +51,36 @@ namespace BannerKings
         public AIBehavior AI = new();
 
         public bool wipeData = false;
-        public PopulationManager PopulationManager {
+        public PopulationManager PopulationManager
+        {
             get; private set;
         }
-        public PolicyManager PolicyManager {
+        public PolicyManager PolicyManager
+        {
             get; private set;
         }
-        public TitleManager TitleManager {
+        public TitleManager TitleManager
+        {
             get; private set;
         }
-        public CourtManager CourtManager {
+        public CourtManager CourtManager
+        {
             get; private set;
         }
-        public ReligionsManager ReligionsManager {
+        public ReligionsManager ReligionsManager
+        {
             get; private set;
         }
-        public EducationManager EducationManager {
+        public EducationManager EducationManager
+        {
             get; private set;
         }
-        public InnovationsManager InnovationsManager {
+        public InnovationsManager InnovationsManager
+        {
             get; private set;
         }
-        public GoalManager GoalManager {
+        public GoalManager GoalManager
+        {
             get; private set;
         }
 
@@ -141,6 +152,7 @@ namespace BannerKings
 
         private void Initialize()
         {
+            BKTraits.Instance.Initialize();
             DefaultVillageBuildings.Instance.Initialize();
             DefaultDivinities.Instance.Initialize();
             DefaultFaiths.Instance.Initialize();
@@ -157,6 +169,11 @@ namespace BannerKings
             DefaultCourtExpenses.Instance.Initialize();
             DefaultPopulationNames.Instance.Initialize();
             DefaultTitleNames.Instance.Initialize();
+            DefaultSuccessions.Instance.Initialize();
+            DefaultInheritances.Instance.Initialize();
+            DefaultGenderLaws.Instance.Initialize();
+            DefaultGovernments.Instance.Initialize();
+            DefaultContractAspects.Instance.Initialize();
             DefaultDiseases.Instance.Initialize();
             foreach (ITypeInitializer init in modInitializers)
             {
@@ -171,6 +188,7 @@ namespace BannerKings
             PopulationManager = new PopulationManager(new Dictionary<Settlement, PopulationData>(), new List<MobileParty>());
             PolicyManager = new PolicyManager(new Dictionary<Settlement, List<BannerKingsDecision>>(), new Dictionary<Settlement, List<BannerKingsPolicy>>());
             TitleManager = new TitleManager(new Dictionary<FeudalTitle, Hero>(), new Dictionary<Kingdom, FeudalTitle>());
+            TitleGenerator.InitializeTitles();
             CourtManager = new CourtManager(new Dictionary<Clan, CouncilData>());
             ReligionsManager = new ReligionsManager();
             EducationManager = new EducationManager();
@@ -185,7 +203,6 @@ namespace BannerKings
             PopulationManager = populationManager;
             PolicyManager = policyManager;
             TitleManager = titleManager;
-            titleManager.RefreshCaches();
             CourtManager = court;
             ReligionsManager = religions ?? new ReligionsManager();
             EducationManager = educations ?? new EducationManager();

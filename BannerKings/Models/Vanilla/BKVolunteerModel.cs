@@ -1,7 +1,5 @@
 using BannerKings.Managers.Policies;
 using BannerKings.Managers.Skills;
-using BannerKings.Managers.Titles;
-using Helpers;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.CharacterDevelopment;
 using TaleWorlds.CampaignSystem.GameComponents;
@@ -22,6 +20,7 @@ using BannerKings.Managers.Court.Members;
 using BannerKings.Managers.Court.Members.Tasks;
 using BannerKings.Managers.Populations;
 using BannerKings.Managers.Recruits;
+using BannerKings.Managers.Titles.Governments;
 
 namespace BannerKings.Models.Vanilla
 {
@@ -336,7 +335,7 @@ namespace BannerKings.Models.Vanilla
             }
 
             var government = BannerKingsConfig.Instance.TitleManager.GetSettlementGovernment(settlement);
-            if (government == GovernmentType.Tribal)
+            if (government == DefaultGovernments.Instance.Tribal)
             {
                 explainedNumber.AddFactor(0.2f, new TextObject("{=PSrEtF5L}Government"));
             }
