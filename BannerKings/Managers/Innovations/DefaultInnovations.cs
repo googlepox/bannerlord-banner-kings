@@ -255,9 +255,7 @@ namespace BannerKings.Managers.Innovations
                 new TextObject("{=!}Increased sanitation\nEnables construction of Public Baths"),
                 DefaultEras.Instance.FirstEra,
                 Innovation.InnovationType.Civic,
-                2000f,
-                null,
-                HorseCollar);
+                2000f);
         }
 
         public List<Innovation> GetCultureDefaultInnovations(CultureObject culture)

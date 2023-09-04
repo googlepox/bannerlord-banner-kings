@@ -35,6 +35,8 @@ namespace BannerKings.Behaviours.PartyNeeds
 
         private List<ItemCategory> woodCategories;
 
+        private List<ItemCategory> medicalCategories;
+
         public PartySupplies(MobileParty party)
         {
             Party = party;
@@ -99,6 +101,11 @@ namespace BannerKings.Behaviours.PartyNeeds
             {
                 DefaultItemCategories.Wood
             };
+
+            medicalCategories = new List<ItemCategory>(1)
+            {
+                BKItemCategories.Instance.MedicalSupplies
+            };
         }
 
         [SaveableProperty(2)] public bool AutoBuying { get; private set; }
@@ -117,6 +124,7 @@ namespace BannerKings.Behaviours.PartyNeeds
         [SaveableProperty(9)] public float HorsesNeed { get; private set; }
         [SaveableProperty(10)] public float AnimalProductsNeed { get; private set; }
         [SaveableProperty(11)] public float ShieldsNeed { get; private set; }
+        [SaveableProperty(12)] public float MedicalNeed { get; private set; }
 
         public int MinimumSoldiersThreshold => (int)BannerKingsConfig.Instance.PartyNeedsModel.MinimumSoldiersThreshold(this, false)
             .ResultNumber;
@@ -148,6 +156,8 @@ namespace BannerKings.Behaviours.PartyNeeds
 
         public ExplainedNumber GetShieldsCurrentNeed(bool explained = false) =>
            BannerKingsConfig.Instance.PartyNeedsModel.CalculateShieldsNeed(this, explained);
+        public ExplainedNumber GetMedicalCurrentNeed(bool explained = false) =>
+           BannerKingsConfig.Instance.PartyNeedsModel.CalculateMedicalNeed(this, explained);
 
         public void Tick()
         {
@@ -162,6 +172,7 @@ namespace BannerKings.Behaviours.PartyNeeds
                 HorsesNeed = 0f;
                 AnimalProductsNeed = 0f;
                 ShieldsNeed = 0f;
+                MedicalNeed = 0f;
             }
 
             if (Party.MemberRoster.Count > MinimumSoldiersThreshold)
@@ -229,6 +240,9 @@ namespace BannerKings.Behaviours.PartyNeeds
 
                 float shields = model.CalculateShieldsNeed(this, false).ResultNumber * modifier;
                 ShieldsNeed = MathF.Clamp(ShieldsNeed + shields, 0f, size * (maxInfantry / Party.MemberRoster.TotalManCount));
+
+                float medical = model.CalculateMedicalNeed(this, false).ResultNumber * modifier;
+                MedicalNeed = MathF.Clamp(MedicalNeed + medical, 0f, size * (20f / Party.MemberRoster.TotalManCount));
             }
 
             BuyItems();
@@ -241,6 +255,7 @@ namespace BannerKings.Behaviours.PartyNeeds
             HorsesNeed -= ConsumeItems(HorsesNeed, horseCategories);
             AnimalProductsNeed -= ConsumeItems(AnimalProductsNeed, animalProductsCategories);
             ShieldsNeed -= ConsumeItems(ShieldsNeed, shieldCategories);
+            MedicalNeed -= ConsumeItems(MedicalNeed, medicalCategories);
         }
 
         public void BuyItems()
@@ -256,6 +271,7 @@ namespace BannerKings.Behaviours.PartyNeeds
                 BuyItems(HorsesNeed * DaysOfProvision, horseCategories);
                 BuyItems(AnimalProductsNeed * DaysOfProvision, animalProductsCategories);
                 BuyItems(ShieldsNeed * DaysOfProvision, shieldCategories);
+                BuyItems(MedicalNeed * DaysOfProvision, medicalCategories);
             }
         }
 

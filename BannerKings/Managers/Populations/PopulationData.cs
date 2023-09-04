@@ -49,77 +49,92 @@ namespace BannerKings.Managers.Populations
         }
 
         [SaveableProperty(1)]
-        private List<PopulationClass> classes {
+        private List<PopulationClass> classes
+        {
             get; set;
         }
 
         [SaveableProperty(2)]
-        private float stability {
+        private float stability
+        {
             get; set;
         }
 
         [SaveableProperty(3)]
-        private Settlement settlement {
+        private Settlement settlement
+        {
             get; set;
         }
 
         [SaveableProperty(4)]
-        private CultureData cultureData {
+        private CultureData cultureData
+        {
             get; set;
         }
 
         [SaveableProperty(5)]
-        private VillageData villageData {
+        private VillageData villageData
+        {
             get; set;
         }
 
         [SaveableProperty(6)]
-        private LandData landData {
+        private LandData landData
+        {
             get; set;
         }
 
         [SaveableProperty(7)]
-        private MilitaryData militaryData {
+        private MilitaryData militaryData
+        {
             get; set;
         }
 
         [SaveableProperty(8)]
-        private EconomicData economicData {
+        private EconomicData economicData
+        {
             get; set;
         }
 
         [SaveableProperty(9)]
-        private TournamentData tournamentData {
+        private TournamentData tournamentData
+        {
             get; set;
         }
 
         [SaveableProperty(10)]
-        private TitleData titleData {
+        private TitleData titleData
+        {
             get; set;
         }
 
         [SaveableProperty(11)]
-        private float autonomy {
+        private float autonomy
+        {
             get; set;
         }
 
         [SaveableProperty(12)]
-        private ReligionData religionData {
+        private ReligionData religionData
+        {
             get; set;
         }
 
         [SaveableProperty(13)]
-        private MineralData mineralData {
+        private MineralData mineralData
+        {
             get; set;
         }
 
         [SaveableProperty(14)]
-        public EstateData EstateData {
+        public EstateData EstateData
+        {
             get; private set;
         }
 
         [SaveableProperty(15)]
-        private DiseaseData diseaseData {
+        private DiseaseData diseaseData
+        {
             get; set;
         }
 
@@ -129,7 +144,8 @@ namespace BannerKings.Managers.Populations
         public MilitaryData MilitaryData => militaryData;
         public LandData LandData => landData;
         public EconomicData EconomicData => economicData;
-        public TournamentData TournamentData {
+        public TournamentData TournamentData
+        {
             get => tournamentData;
             set => tournamentData = value;
         }
@@ -140,8 +156,10 @@ namespace BannerKings.Managers.Populations
 
         public ExplainedNumber Foreigner => new BKForeignerModel().CalculateEffect(settlement);
 
-        public int TotalPop {
-            get {
+        public int TotalPop
+        {
+            get
+            {
                 var total = 0;
                 classes.ForEach(popClass => total += popClass.count);
                 return total;
@@ -151,9 +169,11 @@ namespace BannerKings.Managers.Populations
         public Settlement Settlement => settlement;
         public ExplainedNumber Growth => BannerKingsConfig.Instance.GrowthModel.CalculateEffect(settlement, this);
 
-        public float Stability {
+        public float Stability
+        {
             get => stability;
-            set {
+            set
+            {
                 if (value != stability)
                 {
                     stability = MBMath.ClampFloat(value, 0f, 1f);
@@ -161,9 +181,11 @@ namespace BannerKings.Managers.Populations
             }
         }
 
-        public float Autonomy {
+        public float Autonomy
+        {
             get => autonomy;
-            set {
+            set
+            {
                 if (value != autonomy)
                 {
                     autonomy = MBMath.ClampFloat(value, 0f, 1f);
@@ -174,9 +196,11 @@ namespace BannerKings.Managers.Populations
         public ExplainedNumber NotableSupport =>
             BannerKingsConfig.Instance.StabilityModel.CalculateNotableSupport(settlement);
 
-        public List<PopulationClass> Classes {
+        public List<PopulationClass> Classes
+        {
             get => classes;
-            set {
+            set
+            {
                 if (value != classes)
                 {
                     classes = value;
@@ -312,7 +336,8 @@ namespace BannerKings.Managers.Populations
                 var desiredTypes = GetDesiredPopTypes(settlement);
                 var typesList = new List<ValueTuple<PopType, float>>();
 
-                classes.ForEach(popClass => {
+                classes.ForEach(popClass =>
+                {
                     var type = popClass.type;
                     switch (pops)
                     {
@@ -441,17 +466,20 @@ namespace BannerKings.Managers.Populations
                 diseaseData = new DiseaseData(this, settlement);
             }
 
-            diseaseData?.Update(this);
-            if (diseaseData.TerminalCases > 0)
+            if (MBRandom.RandomFloat < (1f / 84f))
             {
-                int terminalCases = diseaseData.TerminalCases;
-                float weightedPop;
-                foreach (PopulationClass popClass in classes)
+                diseaseData?.Update(this);
+                if (diseaseData.TerminalCases > 0)
                 {
-                    weightedPop = popClass.count / TotalPop;
-                    if (weightedPop > MBRandom.RandomFloat)
+                    int terminalCases = diseaseData.TerminalCases;
+                    float weightedPop;
+                    foreach (PopulationClass popClass in classes)
                     {
-                        UpdatePopulation(settlement, -terminalCases, popClass.type);
+                        weightedPop = popClass.count / TotalPop;
+                        if (weightedPop > MBRandom.RandomFloat)
+                        {
+                            UpdatePopulation(settlement, -terminalCases, popClass.type);
+                        }
                     }
                 }
             }

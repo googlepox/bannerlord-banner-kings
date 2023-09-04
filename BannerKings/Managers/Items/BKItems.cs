@@ -6,44 +6,163 @@ namespace BannerKings.Managers.Items
 {
     public class BKItems : DefaultTypeInitializer<BKItems, ItemObject>
     {
-        public ItemObject BookHeartsDesire { get; private set; }
-        public ItemObject BookSiege { get; private set; }
-        public ItemObject BookStrategikon { get; private set; }
-        public ItemObject BookLeadership { get; private set; }
-        public ItemObject BookTrade { get; private set; }
-        public ItemObject BookDictionary { get; private set; }
-        public ItemObject BookArtHorsemanship { get; private set; }
-        public ItemObject BookGreenKnight { get; private set; }
-        public ItemObject BookOneHanded { get; private set; }
-        public ItemObject BookTwoHanded { get; private set; }
-        public ItemObject BookPolearm { get; private set; }
-        public ItemObject BookCrossbow { get; private set; }
-        public ItemObject BookBow { get; private set; }
-        public ItemObject BookThrowing { get; private set; }
-        public ItemObject BookMedicine { get; private set; }
-        public ItemObject BookLoveCastle { get; private set; }
-        public ItemObject BookKaisLayala { get; private set; }
-        public ItemObject BookHelgeredKara { get; private set; }
-        public ItemObject BookGardenArgument { get; private set; }
-        public ItemObject BookIrkBitig { get; private set; }
-        public ItemObject BookNakedFingers { get; private set; }
-        public ItemObject BookFabulaeAquilae { get; private set; }
-        public ItemObject BookWestGemynt { get; private set; }
-        public ItemObject BookSkullsEleftheroi { get; private set; }
+        public ItemObject BookHeartsDesire
+        {
+            get; private set;
+        }
+        public ItemObject BookSiege
+        {
+            get; private set;
+        }
+        public ItemObject BookStrategikon
+        {
+            get; private set;
+        }
+        public ItemObject BookLeadership
+        {
+            get; private set;
+        }
+        public ItemObject BookTrade
+        {
+            get; private set;
+        }
+        public ItemObject BookDictionary
+        {
+            get; private set;
+        }
+        public ItemObject BookArtHorsemanship
+        {
+            get; private set;
+        }
+        public ItemObject BookGreenKnight
+        {
+            get; private set;
+        }
+        public ItemObject BookOneHanded
+        {
+            get; private set;
+        }
+        public ItemObject BookTwoHanded
+        {
+            get; private set;
+        }
+        public ItemObject BookPolearm
+        {
+            get; private set;
+        }
+        public ItemObject BookCrossbow
+        {
+            get; private set;
+        }
+        public ItemObject BookBow
+        {
+            get; private set;
+        }
+        public ItemObject BookThrowing
+        {
+            get; private set;
+        }
+        public ItemObject BookMedicine
+        {
+            get; private set;
+        }
+        public ItemObject BookLoveCastle
+        {
+            get; private set;
+        }
+        public ItemObject BookKaisLayala
+        {
+            get; private set;
+        }
+        public ItemObject BookHelgeredKara
+        {
+            get; private set;
+        }
+        public ItemObject BookGardenArgument
+        {
+            get; private set;
+        }
+        public ItemObject BookIrkBitig
+        {
+            get; private set;
+        }
+        public ItemObject BookNakedFingers
+        {
+            get; private set;
+        }
+        public ItemObject BookFabulaeAquilae
+        {
+            get; private set;
+        }
+        public ItemObject BookWestGemynt
+        {
+            get; private set;
+        }
+        public ItemObject BookSkullsEleftheroi
+        {
+            get; private set;
+        }
 
-        public ItemObject Apple { get; private set; }
-        public ItemObject Bread { get; private set; }
-        public ItemObject Pie { get; private set; }
-        public ItemObject Carrot { get; private set; }
-        public ItemObject Orange { get; private set; }
-        public ItemObject Honey { get; private set; }
-        public ItemObject Limestone { get; private set; }
-        public ItemObject Marble { get; private set; }
-        public ItemObject GoldOre { get; private set; }
-        public ItemObject GoldIngot { get; private set; }
-        public ItemObject Gems { get; private set; }
-        public ItemObject Mead { get; private set; }
-        public ItemObject Garum { get; private set; }
+        public ItemObject Apple
+        {
+            get; private set;
+        }
+        public ItemObject Bread
+        {
+            get; private set;
+        }
+        public ItemObject Pie
+        {
+            get; private set;
+        }
+        public ItemObject Carrot
+        {
+            get; private set;
+        }
+        public ItemObject Orange
+        {
+            get; private set;
+        }
+        public ItemObject Honey
+        {
+            get; private set;
+        }
+        public ItemObject Limestone
+        {
+            get; private set;
+        }
+        public ItemObject Marble
+        {
+            get; private set;
+        }
+        public ItemObject GoldOre
+        {
+            get; private set;
+        }
+        public ItemObject GoldIngot
+        {
+            get; private set;
+        }
+        public ItemObject Gems
+        {
+            get; private set;
+        }
+        public ItemObject Mead
+        {
+            get; private set;
+        }
+        public ItemObject Garum
+        {
+            get; private set;
+        }
+        public ItemObject Medicine
+        {
+            get; private set;
+        }
+        public ItemObject Herbs
+        {
+            get; private set;
+        }
 
         public override IEnumerable<ItemObject> All
         {
@@ -72,6 +191,8 @@ namespace BannerKings.Managers.Items
                 yield return Mead;
                 yield return Garum;
                 yield return Orange;
+                yield return Medicine;
+                yield return Herbs;
             }
         }
 
@@ -141,6 +262,16 @@ namespace BannerKings.Managers.Items
             InitializeTradeGood(Garum,
                 new TextObject("{=skP17S9C}Garum{@Plural}amphorae of garum{\\@}"), "amphora_slim",
                 BKItemCategories.Instance.Garum, 35, 10f, ItemObject.ItemTypeEnum.Goods);
+
+            Medicine = Game.Current.ObjectManager.RegisterPresumedObject(new ItemObject("medicine"));
+            InitializeTradeGood(Medicine,
+                new TextObject("{=!}Medicine{@Plural}vials of medicine{\\@}"), "kitchen_bottle_a",
+                BKItemCategories.Instance.MedicalSupplies, 1000, 10f, ItemObject.ItemTypeEnum.Goods);
+
+            Herbs = Game.Current.ObjectManager.RegisterPresumedObject(new ItemObject("herbs"));
+            InitializeTradeGood(Herbs,
+                new TextObject("{=!}Herbs{@Plural}sacks of herbs{\\@}"), "flora_plant_b",
+                BKItemCategories.Instance.MedicalSupplies, 500, 1f, ItemObject.ItemTypeEnum.Goods);
 
 
             BookIrkBitig = Game.Current.ObjectManager.RegisterPresumedObject(new ItemObject("book_irk_bitig"));

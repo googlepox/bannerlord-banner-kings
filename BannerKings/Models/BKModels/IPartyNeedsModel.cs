@@ -24,5 +24,6 @@ namespace BannerKings.Models.BKModels
         public ExplainedNumber CalculateToolsNeed(PartySupplies needs, bool descriptions);
         public ExplainedNumber CalculateWoodNeed(PartySupplies needs, bool descriptions);
         public ExplainedNumber CalculateAnimalProductsNeed(PartySupplies needs, bool descriptions);
+        public ExplainedNumber CalculateMedicalNeed(PartySupplies needs, bool descriptions);
     }
 }

@@ -550,6 +550,9 @@ namespace BannerKings.UI
             list.Add(new TooltipProperty(new TextObject("{=xcEes2qY}Animal Products:").ToString(),
                 MBRandom.RoundRandomized(supplies.AnimalProductsNeed).ToString(),
                 0));
+            list.Add(new TooltipProperty(new TextObject("{=!}Medical Supplies:").ToString(),
+                MBRandom.RoundRandomized(supplies.MedicalNeed).ToString(),
+                0));
         }
 
         public static void AddWageSuppliesHint(ref List<TooltipProperty> list, PartySupplies supplies)

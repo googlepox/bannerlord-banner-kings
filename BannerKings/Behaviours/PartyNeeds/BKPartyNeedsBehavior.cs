@@ -119,7 +119,7 @@ namespace BannerKings.Behaviours.PartyNeeds
                     if (companion != null && supplies != null)
                     {
                         MBTextManager.SetTextVariable("SUPPLIES_OVERVIEW_TEXT",
-                            new TextObject("{=So38uc1L}{TITLE}, our retinue requireth, with {MEMBERS} members and over the course of {DAYS} days, {TEXTITLE} textiles, {ALCOHOL} alcohol, {ANIMAL} animal products and {WOOD} wood for its morale upkeep. In terms of equipment, {ARROWS} arrows, {SHIELDS}, {WEAPONS} weapons and {MOUNTS} mounts are needed. In the case of a siege, we also require additional tools and wood for optimal efficiency at building our camp and siege engines.")
+                            new TextObject("{=So38uc1L}{TITLE}, our retinue requireth, with {MEMBERS} members and over the course of {DAYS} days, {TEXTITLE} textiles, {ALCOHOL} alcohol, {ANIMAL} animal products and {WOOD} wood for its morale upkeep. For medical supplies, {MEDICAL} medical supplies are required for disease protection. In terms of equipment, {ARROWS} arrows, {SHIELDS}, {WEAPONS} weapons and {MOUNTS} mounts are needed. In the case of a siege, we also require additional tools and wood for optimal efficiency at building our camp and siege engines.")
                             .SetTextVariable("TITLE", Hero.MainHero.IsFemale ? GameTexts.FindText("str_my_lady") : GameTexts.FindText("str_my_lord"))
                             .SetTextVariable("MOUNTS", MBRandom.RoundRandomized(supplies.GetMountsCurrentNeed().ResultNumber * supplies.DaysOfProvision))
                             .SetTextVariable("WEAPONS", MBRandom.RoundRandomized(supplies.GetWeaponsCurrentNeed().ResultNumber * supplies.DaysOfProvision))
@@ -128,6 +128,7 @@ namespace BannerKings.Behaviours.PartyNeeds
                             .SetTextVariable("WOOD", MBRandom.RoundRandomized(supplies.GetWoodCurrentNeed().ResultNumber * supplies.DaysOfProvision))
                             .SetTextVariable("ALCOHOL", MBRandom.RoundRandomized(supplies.GetAlcoholCurrentNeed().ResultNumber * supplies.DaysOfProvision))
                             .SetTextVariable("TEXTITLE", MBRandom.RoundRandomized(supplies.GetTextileCurrentNeed().ResultNumber * supplies.DaysOfProvision))
+                            .SetTextVariable("MEDICAL", MBRandom.RoundRandomized(supplies.GetMedicalCurrentNeed().ResultNumber * supplies.DaysOfProvision))
                             .SetTextVariable("DAYS", supplies.DaysOfProvision)
                             .SetTextVariable("MEMBERS", MobileParty.MainParty.MemberRoster.TotalManCount)
                             );

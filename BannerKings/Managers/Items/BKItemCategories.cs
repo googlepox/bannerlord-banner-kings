@@ -6,19 +6,62 @@ namespace BannerKings.Managers.Items
 {
     public class BKItemCategories : DefaultTypeInitializer<BKItemCategories, ItemCategory>
     {
-        public ItemCategory Book { get; private set; }
-        public ItemCategory Apple { get; private set; }
-        public ItemCategory Orange { get; private set; }
-        public ItemCategory Bread { get; private set; }
-        public ItemCategory Pie { get; private set; }
-        public ItemCategory Carrot { get; private set; }
-        public ItemCategory Honey { get; private set; }
-        public ItemCategory Gold { get; private set; }
-        public ItemCategory Limestone { get; private set; }
-        public ItemCategory Marble { get; private set; }
-        public ItemCategory Gems { get; private set; }
-        public ItemCategory Mead { get; private set; }
-        public ItemCategory Garum { get; private set; }
+        public ItemCategory Book
+        {
+            get; private set;
+        }
+        public ItemCategory Apple
+        {
+            get; private set;
+        }
+        public ItemCategory Orange
+        {
+            get; private set;
+        }
+        public ItemCategory Bread
+        {
+            get; private set;
+        }
+        public ItemCategory Pie
+        {
+            get; private set;
+        }
+        public ItemCategory Carrot
+        {
+            get; private set;
+        }
+        public ItemCategory Honey
+        {
+            get; private set;
+        }
+        public ItemCategory Gold
+        {
+            get; private set;
+        }
+        public ItemCategory Limestone
+        {
+            get; private set;
+        }
+        public ItemCategory Marble
+        {
+            get; private set;
+        }
+        public ItemCategory Gems
+        {
+            get; private set;
+        }
+        public ItemCategory Mead
+        {
+            get; private set;
+        }
+        public ItemCategory Garum
+        {
+            get; private set;
+        }
+        public ItemCategory MedicalSupplies
+        {
+            get; private set;
+        }
         public override IEnumerable<ItemCategory> All => throw new NotImplementedException();
 
         public override void Initialize()
@@ -61,6 +104,9 @@ namespace BannerKings.Managers.Items
 
             Gems = Game.Current.ObjectManager.RegisterPresumedObject(new ItemCategory("gems"));
             Gems.InitializeObject(true, 10, 50, ItemCategory.Property.None);
+
+            MedicalSupplies = Game.Current.ObjectManager.RegisterPresumedObject(new ItemCategory("medicalsupplies"));
+            MedicalSupplies.InitializeObject(true, 1, 10, ItemCategory.Property.BonusToProsperity);
         }
     }
 }

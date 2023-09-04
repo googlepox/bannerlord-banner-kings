@@ -1,6 +1,8 @@
 using BannerKings.Behaviours.PartyNeeds;
+using BannerKings.Managers.Traits;
 using BannerKings.Settings;
 using TaleWorlds.CampaignSystem;
+using TaleWorlds.CampaignSystem.CharacterDevelopment;
 using TaleWorlds.CampaignSystem.Roster;
 using TaleWorlds.Core;
 using TaleWorlds.Localization;
@@ -26,6 +28,8 @@ namespace BannerKings.Models.BKModels
         public float AnimalProductsPerSoldier => 0.01f;
 
         public float AlcoholPerSoldier => 0.025f;
+
+        public float MedicalSuppliesPerSoldier => 0.05f;
 
         public ExplainedNumber MinimumSoldiersThreshold(PartySupplies needs, bool descriptions)
         {
@@ -287,6 +291,31 @@ namespace BannerKings.Models.BKModels
             }
 
             result.AddFactor(siege, siegeText);
+            return result;
+        }
+
+        public ExplainedNumber CalculateMedicalNeed(PartySupplies needs, bool descriptions) {
+            ExplainedNumber result = new ExplainedNumber(0f, descriptions);
+            result.LimitMin(0f);
+            if (needs.Party.CurrentSettlement != null && needs.Party.CurrentSettlement.Town != null) {
+                result.Add(-1f, new TextObject("{=eN981XMi}In a town or castle"));
+                return result;
+            }
+
+            foreach (TroopRosterElement element in needs.Party.MemberRoster.GetTroopRoster()) {
+                if (element.Character.IsHero) {
+                    foreach (TraitObject trait in BKTraits.Instance.DiseaseTraits) {
+                        if (element.Character.GetTraitLevel(trait) > 0) {
+                            result.Add(element.Character.GetTraitLevel(trait) * MedicalSuppliesPerSoldier * BannerKingsSettings.Instance.PartySuppliesFactor,
+                                new TextObject("{=5Jr8zfXD}{TROOP_NAME}({DISEASE} Severity: {COUNT})")
+                                .SetTextVariable("TROOP_NAME", element.Character.Name)
+                                .SetTextVariable("COUNT", element.Character.GetTraitLevel(trait))
+                                .SetTextVariable("DISEASE", trait.Name));
+                        }
+                    }
+                }
+            }
+
             return result;
         }
     }

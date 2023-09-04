@@ -14,37 +14,36 @@ namespace BannerKings.Managers.Populations
 {
     public class DiseaseData : BannerKingsData
     {
-        [SaveableProperty(1)]
         private ExplainedNumber sanitation {
             get; set;
         }
 
-        [SaveableProperty(2)]
+        [SaveableProperty(1)]
         private int infected {
             get; set;
         }
 
-        [SaveableProperty(3)]
+        [SaveableProperty(2)]
         private float contamination {
             get; set;
         }
 
-        [SaveableProperty(4)]
+        [SaveableProperty(3)]
         private Disease activeDisease {
             get; set;
         }
 
-        [SaveableProperty(5)]
+        [SaveableProperty(4)]
         private int terminalCases {
             get; set;
         }
 
-        [SaveableProperty(6)]
+        [SaveableProperty(5)]
         public int deathToll {
             get; set;
         }
 
-        [SaveableProperty(7)]
+        [SaveableProperty(6)]
         private Settlement Settlement {
             get; set;
         }
@@ -83,26 +82,21 @@ namespace BannerKings.Managers.Populations
             float popCap = BannerKingsConfig.Instance.GrowthModel.CalculateSettlementCap(Settlement, data, true).ResultNumber;
             float baseSanitation = 1 - (data.TotalPop / popCap);
             sanitation = new ExplainedNumber(baseSanitation, false);
-            foreach (Building building in Settlement.Town?.Buildings)
+            if (Settlement != null && Settlement.IsTown)
             {
-                if (building.BuildingType == DefaultBuildingTypes.SettlementAquaducts)
+                foreach (Building building in Settlement?.Town?.Buildings)
                 {
-                    sanitation.Add(0.15f, new TextObject("{=!}Aqueducts"));
-                }
-                else if (building.BuildingType == DefaultBuildingTypes.SettlementMarketplace)
-                {
-                    sanitation.Add(-0.15f, new TextObject("{=!}Marketplace"));
-                }
-                else if (building.BuildingType == DefaultBuildingTypes.SettlementForum)
-                {
-                    sanitation.Add(-0.05f, new TextObject("{=!}Forum"));
-                }
-                else if (building.BuildingType == BKBuildings.Instance.Sewers)
-                {
-                    sanitation.Add(0.15f, new TextObject("{=!}Sewers"));
-                }
-                else if (building.BuildingType == BKBuildings.Instance.PublicBaths) {
-                    sanitation.Add(0.15f, new TextObject("{=!}Public Baths"));
+                    if (building.BuildingType == DefaultBuildingTypes.SettlementAquaducts) {
+                        sanitation.Add(0.15f, new TextObject("{=!}Aqueducts"));
+                    } else if (building.BuildingType == DefaultBuildingTypes.SettlementMarketplace) {
+                        sanitation.Add(-0.15f, new TextObject("{=!}Marketplace"));
+                    } else if (building.BuildingType == DefaultBuildingTypes.SettlementForum) {
+                        sanitation.Add(-0.05f, new TextObject("{=!}Forum"));
+                    } else if (building.BuildingType == BKBuildings.Instance.Sewers) {
+                        sanitation.Add(0.15f, new TextObject("{=!}Sewers"));
+                    } else if (building.BuildingType == BKBuildings.Instance.PublicBaths) {
+                        sanitation.Add(0.15f, new TextObject("{=!}Public Baths"));
+                    }
                 }
             }
             InnovationData innovationData = BannerKingsConfig.Instance.InnovationsManager.GetInnovationData(Settlement.Culture);
