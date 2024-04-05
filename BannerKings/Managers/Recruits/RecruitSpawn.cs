@@ -1,6 +1,9 @@
 ﻿using BannerKings.Managers.Innovations.Eras;
+using Microsoft.Extensions.Options;
 using System.Collections.Generic;
+using System.Linq;
 using TaleWorlds.CampaignSystem;
+using TaleWorlds.Core;
 using TaleWorlds.Localization;
 using static BannerKings.Managers.PopulationManager;
 
@@ -15,16 +18,20 @@ namespace BannerKings.Managers.Recruits
         }
 
         public void Initialize(CharacterObject troop, 
-            CultureObject culture, 
-            float chance, 
-            PopType popType, 
-            Kingdom kingdom = null)
+            CultureObject culture,
+            Dictionary<PopType, float> chances,
+            Kingdom kingdom = null,
+            bool spawnVillages = true,
+            bool spawnTowns = true,
+            bool spawnCastles = true)
         {
             Troop = troop;
-            PopType = popType;
+            Chances = chances;
             Culture = culture;
-            Chance = chance;
             Kingdom = kingdom;
+            SpawnVillages = spawnVillages;
+            SpawnCastles = spawnCastles;
+            SpawnTowns = spawnTowns;
         }
 
         public void SetTroopAdvancement(Era era, string equipmentId)
@@ -37,12 +44,37 @@ namespace BannerKings.Managers.Recruits
             FiefStrings.Add(id);
         }
 
+        public bool SpawnVillages { get; private set; }
+        public bool SpawnCastles { get; private set; }
+        public bool SpawnTowns { get; private set; }
         public CharacterObject Troop { get; private set; }
         public HashSet<string> FiefStrings { get; set; }
         public Kingdom Kingdom { get; private set; }
         public CultureObject Culture { get; private set; }
-        public float Chance { get; private set; }
-        public PopType PopType { get; private set; }
+        public float GetChance(PopType type) => Chances.ContainsKey(type) ? Chances[type] : 0f;
+        public List<PopType> GetPossibleTypes() => Chances.Keys.ToList();
+
+        public PopType GetTroopPopType()
+        {
+            if (Chances.Count == 1) return Chances.First().Key;
+            else if (Chances.Count > 0)
+            {
+                while (true)
+                {
+                    foreach (var pair in Chances)
+                    {
+                        if (MBRandom.RandomFloat <= pair.Value)
+                        {
+                            return pair.Key;
+                        }
+                    }
+                }
+            }
+
+            return PopType.None;
+        }
+        
+        private Dictionary<PopType, float> Chances { get; set; }
 
         public override bool Equals(object obj)
         {

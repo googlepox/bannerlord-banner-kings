@@ -3,18 +3,17 @@ using System.Collections.Generic;
 using System.Linq;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Settlements;
+using TaleWorlds.Core;
 using TaleWorlds.SaveSystem;
 
 namespace BannerKings.Managers.Populations.Estates
 {
     public class EstateData : BannerKingsData
     {
-
         public EstateData(Settlement settlement, PopulationData data)
         {
             Settlement = settlement;
             Estates = new List<Estate>();
-            Update(data);
         }
 
         [SaveableProperty(1)] public Settlement Settlement { get; private set; }
@@ -42,22 +41,6 @@ namespace BannerKings.Managers.Populations.Estates
 
             Settlement.Village.TradeTaxAccumulated += tradeTax - totalDeducted;
         }
-
-        public void UpdatePopulation(PopulationManager.PopType type, int quantity, int classTotal)
-        {
-            foreach (Estate estate in Estates)
-            {
-                if (estate.IsDisabled)
-                {
-                    continue;
-                }
-
-                float proportion = estate.GetPopulationClassQuantity(type) / (float)classTotal;
-                int result = (int)(quantity * proportion);
-                estate.AddPopulation(type, result);
-            }
-        }
-
 
         public void InheritEstate(Estate estate, Hero newOwner = null)
         {
@@ -103,18 +86,33 @@ namespace BannerKings.Managers.Populations.Estates
 
         public void DestroyEstate(Estate estate) => Estates.Remove(estate);
 
+        public void CreateEstates(PopulationData data)
+        {
+            if (Estates.Count < BannerKingsConfig.Instance.EstatesModel.CalculateEstatesMaximum(Settlement).ResultNumber)
+            {
+                var estate = Estate.CreateNotableEstate(null, data, this);
+                if (estate != null)
+                {
+                    Estates.Add(estate);
+                }
+            }
+        }
 
         internal override void Update(PopulationData data = null)
         {
             ExceptionUtils.TryCatch(() =>
             {
+                float growthFactor = 0f;
+                if (Settlement.IsVillage)
+                {
+                    growthFactor = BannerKingsConfig.Instance.ProsperityModel.CalculateHearthChange(Settlement.Village).ResultNumber;
+                }
+                
                 var dead = new List<Estate>();
                 foreach (Estate estate in Estates)
                 {
-                    if (estate.IsDisabled)
-                    {
-                        continue;
-                    }
+                    if (estate.IsDisabled) continue;
+                    if (MBRandom.RandomFloat < growthFactor) estate.AddPopulation(1);
 
                     estate.Tick(data);
                     if (estate.Owner.IsDead)
@@ -151,19 +149,10 @@ namespace BannerKings.Managers.Populations.Estates
                     }
                 }
 
-
-                if (Estates.Count < BannerKingsConfig.Instance.EstatesModel.CalculateEstatesMaximum(Settlement).ResultNumber)
-                {
-                    var estate = Estate.CreateNotableEstate(null, data, this);
-                    if (estate != null)
-                    {
-                        Estates.Add(estate);
-                    }
-                }
+                CreateEstates(data);
             }, 
             this.GetType().Name,
             false);
-           
         }
     }
 }

@@ -3,7 +3,7 @@ using System.Linq;
 using BannerKings.Managers.Titles;
 using BannerKings.UI.Court;
 using BannerKings.UI.Cultures;
-using BannerKings.UI.Kingdoms;
+using BannerKings.UI.VanillaTabs.Kingdoms;
 using BannerKings.Utils;
 using Bannerlord.UIExtenderEx.Attributes;
 using Bannerlord.UIExtenderEx.ViewModels;
@@ -87,7 +87,7 @@ namespace BannerKings.UI.Extensions.Encyclopedia
                     }
                     else if (member == member.Clan.Leader)
                     {
-                        highestTitle = Utils.Helpers.GetTitlePrefix(title.TitleType, member.MapFaction.Culture);
+                        highestTitle = Utils.TextHelper.GetTitlePrefix(title.TitleType, member.MapFaction.Culture).ToString();
                     }
                 }
             }

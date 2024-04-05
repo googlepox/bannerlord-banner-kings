@@ -68,7 +68,7 @@ namespace BannerKings.Managers.Goals.Decisions
                 failedReasons.Add(GameTexts.FindText("str_in_army"));
             }
 
-            var behavior = Campaign.Current.GetCampaignBehavior<BKArmyBehavior>();
+            var behavior = TaleWorlds.CampaignSystem.Campaign.Current.GetCampaignBehavior<BKArmyBehavior>();
             if (behavior.LastHeroArmy(fulfiller).ElapsedSeasonsUntilNow < 2f)
             {
                 failedReasons.Add(new TextObject("{=yG6r0iaK}It has been less than 2 seasons since you last summoned your banners."));
@@ -90,7 +90,7 @@ namespace BannerKings.Managers.Goals.Decisions
 
         private void AddBanners(Clan suzerainClan)
         {
-            var behavior = Campaign.Current.GetCampaignBehavior<BKGentryBehavior>();
+            var behavior = TaleWorlds.CampaignSystem.Campaign.Current.GetCampaignBehavior<BKGentryBehavior>();
             foreach (var vassal in BannerKingsConfig.Instance.TitleManager.CalculateAllVassals(suzerainClan))
             {
                 var estates = BannerKingsConfig.Instance.PopulationManager.GetEstates(vassal);
@@ -135,7 +135,7 @@ namespace BannerKings.Managers.Goals.Decisions
                     hint = new TextObject("{=djtn6LCe}Summon {HERO} to your army. They are landed gentry and will return to their property once the army is finished. Their estate can provide {TROOPS} troops. Calling them will cost {INFLUENCE} influence.\n\n{READY}")
                         .SetTextVariable("HERO", vassal.Name)
                         .SetTextVariable("INFLUENCE", influence)
-                        .SetTextVariable("TROOPS", estate.GetManpower(PopulationManager.PopType.Serfs))
+                        .SetTextVariable("TROOPS", estate.TroopRoster.TotalManCount)
                         .SetTextVariable("READY", readyTuple.Item2);
                 }
 
@@ -161,6 +161,7 @@ namespace BannerKings.Managers.Goals.Decisions
                 new TextObject("{=QDf3sOgR}Summon your vassals to fulfill their duties.").ToString(),
                 elements,
                 true,
+                1,
                 elements.Count,
                 GameTexts.FindText("str_accept").ToString(),
                 GameTexts.FindText("str_reject").ToString(),
@@ -190,7 +191,7 @@ namespace BannerKings.Managers.Goals.Decisions
                 result += banner.GetRelation(fulfiller) / -10f;
                 if (estate != null)
                 {
-                    result += estate.GetManpower(PopulationManager.PopType.Serfs) * 0.3f;
+                    result += estate.TroopRoster.TotalManCount * 0.3f;
                 }
                 return MathF.Clamp(result, 15f, 60f);
             }
@@ -209,7 +210,7 @@ namespace BannerKings.Managers.Goals.Decisions
             army.Gather(settlement);
             mobileParty.Army = army;
 
-            var behavior = Campaign.Current.GetCampaignBehavior<BKGentryBehavior>();
+            var behavior = TaleWorlds.CampaignSystem.Campaign.Current.GetCampaignBehavior<BKGentryBehavior>();
             float influenceTotal = 0f;
             foreach (var option in banners)
             {
@@ -228,7 +229,7 @@ namespace BannerKings.Managers.Goals.Decisions
             }
 
             GainKingdomInfluenceAction.ApplyForDefault(hero, -influenceTotal);
-            var armyBehavior = Campaign.Current.GetCampaignBehavior<BKArmyBehavior>();
+            var armyBehavior = TaleWorlds.CampaignSystem.Campaign.Current.GetCampaignBehavior<BKArmyBehavior>();
             armyBehavior.AddRecord(hero);
             if (hero != Hero.MainHero && hero.MapFaction == Hero.MainHero.MapFaction)
             {
@@ -242,7 +243,7 @@ namespace BannerKings.Managers.Goals.Decisions
                 }
 
                 InformationManager.DisplayMessage(new InformationMessage(
-                    new TextObject("{=YZfBWynb}{HERO} has called his banners! {TROOPS} troops are gathering for war.")
+                    new TextObject("{=WpjPTcJt}{HERO} has called {?PLAYER.GENDER}her{?}his{\\? banners! {TROOPS} troops are gathering for war.")
                     .SetTextVariable("HERO", hero.Name)
                     .SetTextVariable("TROOPS", troops).ToString(),
                     Color.FromUint(4282569842U),

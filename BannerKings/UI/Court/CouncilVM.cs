@@ -117,7 +117,11 @@ namespace BannerKings.UI.Court
                     new MultiSelectionInquiryData(
                         new TextObject("{=91fEPp8b}Select Councillor").ToString(),
                         description.ToString(),
-                        options, true, 1, GameTexts.FindText("str_done").ToString(), string.Empty,
+                        options, 
+                        true, 
+                        1,
+                        1, 
+                        GameTexts.FindText("str_done").ToString(), string.Empty,
                         delegate(List<InquiryElement> x)
                         {
                             var requester = (Hero?) x[0].Identifier;
@@ -127,17 +131,17 @@ namespace BannerKings.UI.Court
                             {
                                 action = model.GetAction(CouncilActionType.REQUEST, council, requester, position, null,
                                     true);
+
+                                if (!council.GetAvailableHeroes(Position).Contains(requester))
+                                {
+                                    action = model.GetAction(CouncilActionType.SWAP, council, requester, position,
+                                        council.GetHeroCurrentConflictingPosition(position, requester));
+                                }
                             }
                             else if (position.Member != null)
                             {
                                 action = model.GetAction(CouncilActionType.RELINQUISH, council, requester, position);
-                            }
-
-                            if (!council.GetAvailableHeroes(Position).Contains(requester))
-                            {
-                                action = model.GetAction(CouncilActionType.SWAP, council, requester, position,
-                                    council.GetHeroCurrentConflictingPosition(position, requester));
-                            }
+                            }    
 
                             if (action != null)
                             {

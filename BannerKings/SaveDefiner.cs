@@ -1,7 +1,12 @@
 ﻿using BannerKings.Behaviours.Criminality;
+using BannerKings.Behaviours.Diplomacy;
+using BannerKings.Behaviours.Diplomacy.Groups;
+using BannerKings.Behaviours.Diplomacy.Groups.Demands;
+using BannerKings.Behaviours.Diplomacy.Wars;
 using BannerKings.Behaviours.Feasts;
 using BannerKings.Behaviours.Marriage;
 using BannerKings.Behaviours.PartyNeeds;
+using BannerKings.Behaviours.Mercenary;
 using BannerKings.Behaviours.Workshops;
 using BannerKings.Components;
 using BannerKings.Managers;
@@ -27,8 +32,6 @@ using BannerKings.Managers.Institutions.Religions.Faiths.Empire;
 using BannerKings.Managers.Institutions.Religions.Faiths.Northern;
 using BannerKings.Managers.Institutions.Religions.Faiths.Rites;
 using BannerKings.Managers.Institutions.Religions.Faiths.Vlandia;
-using BannerKings.Managers.Institutions.Religions.Leaderships;
-using BannerKings.Managers.Kingdoms;
 using BannerKings.Managers.Kingdoms.Contract;
 using BannerKings.Managers.Kingdoms.Council;
 using BannerKings.Managers.Kingdoms.Peerage;
@@ -37,7 +40,6 @@ using BannerKings.Managers.Policies;
 using BannerKings.Managers.Populations;
 using BannerKings.Managers.Populations.Estates;
 using BannerKings.Managers.Populations.Tournament;
-using BannerKings.Managers.Populations.Villages;
 using BannerKings.Managers.Titles;
 using BannerKings.Managers.Titles.Governments;
 using BannerKings.Managers.Titles.Laws;
@@ -49,6 +51,7 @@ using TaleWorlds.CampaignSystem.Roster;
 using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.CampaignSystem.Settlements.Workshops;
 using TaleWorlds.SaveSystem;
+using static BannerKings.Behaviours.Diplomacy.Groups.InterestGroup;
 using static BannerKings.Managers.Policies.BKCriminalPolicy;
 using static BannerKings.Managers.Policies.BKDraftPolicy;
 using static BannerKings.Managers.Policies.BKGarrisonPolicy;
@@ -57,6 +60,12 @@ using static BannerKings.Managers.Policies.BKTaxPolicy;
 using static BannerKings.Managers.Policies.BKWorkforcePolicy;
 using static BannerKings.Managers.PopulationManager;
 using static BannerKings.Managers.Populations.Estates.Estate;
+using CasusBelli = BannerKings.Behaviours.Diplomacy.Wars.CasusBelli;
+using BannerKings.Managers.Institutions.Religions.Faiths.Eastern;
+using BannerKings.Managers.Titles.Governments;
+using BannerKings.Managers.Goals;
+using BannerKings.Behaviours.Shipping;
+using BannerKings.Campaign;
 
 namespace BannerKings
 {
@@ -88,7 +97,6 @@ namespace BannerKings
             AddEnumDefinition(typeof(CriminalPolicy), 18);
             AddClassDefinition(typeof(TournamentData), 19);
             AddClassDefinition(typeof(VillageData), 20);
-            AddClassDefinition(typeof(VillageBuilding), 21);
             AddClassDefinition(typeof(CultureDataClass), 22);
             AddClassDefinition(typeof(FeudalTitle), 23);
             AddClassDefinition(typeof(FeudalContract), 24);
@@ -118,10 +126,7 @@ namespace BannerKings
             AddClassDefinition(typeof(AuxiliumDuty), 52);
             AddClassDefinition(typeof(RansomDuty), 53);
             AddClassDefinition(typeof(BannerKingsTournament), 54);
-            AddClassDefinition(typeof(BKContractDecision), 55);
-
             AddClassDefinition(typeof(RepublicElectionDecision), 60);
-            AddClassDefinition(typeof(BKSettlementClaimantDecision), 61);
             AddClassDefinition(typeof(BKKingElectionDecision), 62);
             AddClassDefinition(typeof(TitleData), 63);
             AddEnumDefinition(typeof(ClaimType), 64);
@@ -139,13 +144,8 @@ namespace BannerKings
             AddClassDefinition(typeof(AseraFaith), 76);
             AddClassDefinition(typeof(AmraFaith), 77);
             AddClassDefinition(typeof(DarusosianFaith), 78);
-            AddClassDefinition(typeof(ReligiousLeadership), 79);
-            AddClassDefinition(typeof(CentralizedLeadership), 80);
-            AddClassDefinition(typeof(DescentralizedLeadership), 81);
-            AddClassDefinition(typeof(HierocraticLeadership), 82);
-            AddClassDefinition(typeof(AutocephalousLeadership), 83);
-            AddClassDefinition(typeof(KinshipLeadership), 84);
-            AddClassDefinition(typeof(AutonomousLeadership), 85);
+
+
             AddClassDefinition(typeof(CanticlesFaith), 86);
             AddEnumDefinition(typeof(RiteType), 87);
             AddClassDefinition(typeof(EducationData), 88);
@@ -177,12 +177,25 @@ namespace BannerKings
             AddClassDefinition(typeof(WorkshopData), 114);
             AddClassDefinition(typeof(TreeloreFaith), 115);
             AddClassDefinition(typeof(CouncilTask), 116);
-            AddClassDefinition(typeof(TargetedCouncilTask<>), 117);
+            AddClassDefinition(typeof(TargetedCouncilTask<>), 117);     
             AddClassDefinition(typeof(OverseeSanitation), 118);
+            AddClassDefinition(typeof(KingdomDiplomacy), 119);
+            AddClassDefinition(typeof(InterestGroup), 120);
+            AddClassDefinition(typeof(DemandOutcome), 121);
+            AddClassDefinition(typeof(Demand), 122);
+            AddClassDefinition(typeof(CouncilPositionDemand), 123);
             AddClassDefinition(typeof(BanditHeroComponent), 124);
-
+            AddClassDefinition(typeof(PolicyChangeDemand), 125);
+            AddClassDefinition(typeof(DemesneLawChangeDemand), 126);
+            AddClassDefinition(typeof(War), 127);
+            AddClassDefinition(typeof(CasusBelli), 128);
             AddClassDefinition(typeof(Crime), 129);
-
+            AddClassDefinition(typeof(DiplomacyGroup), 130);
+            AddClassDefinition(typeof(AssumeFaithDemand), 131);
+            AddClassDefinition(typeof(TitleDemand), 132);
+            AddClassDefinition(typeof(BKDeclareWarDecision), 133);
+            AddClassDefinition(typeof(BKTournamentManager), 134);
+            AddClassDefinition(typeof(EstateComponent), 135);
             AddClassDefinition(typeof(BKCouncilPositionDecision), 140);
             AddClassDefinition(typeof(PartySupplies), 141);
             AddClassDefinition(typeof(CourtGrace), 142);
@@ -194,14 +207,28 @@ namespace BannerKings
             AddClassDefinition(typeof(Succession), 148);
             AddClassDefinition(typeof(Inheritance), 149);
             AddClassDefinition(typeof(GenderLaw), 150);
-            AddClassDefinition(typeof(Disease), 151);
-            AddClassDefinition(typeof(DiseaseData), 152);
+            AddClassDefinition(typeof(ContractAspect), 151);
+            AddClassDefinition(typeof(Goal), 152);
+            AddClassDefinition(typeof(ContractDuty), 153);
+            AddClassDefinition(typeof(ContractRight), 154);
+            AddClassDefinition(typeof(BKContractChangeDecision), 155);
+            AddClassDefinition(typeof(Travel), 156);
+            AddClassDefinition(typeof(RadicalDemand), 157);
+            AddClassDefinition(typeof(ClaimantDemand), 158);
+            AddClassDefinition(typeof(RadicalGroup), 159);
+
+            AddClassDefinition(typeof(MercenaryCareer), 1000);
+            AddClassDefinition(typeof(MercenaryPrivilege), 1001);
+            AddClassDefinition(typeof(CustomTroop), 1002);
+            AddClassDefinition(typeof(CustomTroopPreset), 1003);
+            AddClassDefinition(typeof(Disease), 1004);
+            AddClassDefinition(typeof(DiseaseData), 1005);
         }
 
         protected override void DefineContainerDefinitions()
         {
+            ConstructContainerDefinition(typeof(Dictionary<FeudalTitle, Kingdom>));
             ConstructContainerDefinition(typeof(List<PopulationClass>));
-            ConstructContainerDefinition(typeof(List<VillageBuilding>));
             ConstructContainerDefinition(typeof(List<CultureDataClass>));
             ConstructContainerDefinition(typeof(Dictionary<Settlement, PopulationData>));
             ConstructContainerDefinition(typeof(List<BannerKingsDecision>));
@@ -243,11 +270,29 @@ namespace BannerKings
             ConstructContainerDefinition(typeof(Dictionary<Town, Feast>));
             ConstructContainerDefinition(typeof(Dictionary<Hero, List<Estate>>));
             ConstructContainerDefinition(typeof(Dictionary<Workshop, WorkshopData>));
-            ConstructContainerDefinition(typeof(Dictionary<Hero, MobileParty>));
+            ConstructContainerDefinition(typeof(Dictionary<Hero, MobileParty>)); 
+            ConstructContainerDefinition(typeof(List<InterestGroup>));
+            ConstructContainerDefinition(typeof(List<RadicalGroup>));
+            ConstructContainerDefinition(typeof(List<Demand>));
+            ConstructContainerDefinition(typeof(List<DemandOutcome>));
+            ConstructContainerDefinition(typeof(Dictionary<Kingdom, KingdomDiplomacy>));
+            ConstructContainerDefinition(typeof(List<War>));
             ConstructContainerDefinition(typeof(List<Crime>));
             ConstructContainerDefinition(typeof(Dictionary<Hero, List<Crime>>));
             ConstructContainerDefinition(typeof(Dictionary<MobileParty, PartySupplies>));
             ConstructContainerDefinition(typeof(List<CourtExpense>));
+
+            ConstructContainerDefinition(typeof(List<MercenaryPrivilege>));
+            ConstructContainerDefinition(typeof(Dictionary<Kingdom, List<MercenaryPrivilege>>));
+            ConstructContainerDefinition(typeof(Dictionary<Clan, MercenaryCareer>));
+            ConstructContainerDefinition(typeof(Dictionary<Kingdom, float>));
+            ConstructContainerDefinition(typeof(Dictionary<CultureObject, CustomTroop>));
+            ConstructContainerDefinition(typeof(Dictionary<Kingdom, CampaignTime>));
+            ConstructContainerDefinition(typeof(Dictionary<Goal, CampaignTime>));
+            ConstructContainerDefinition(typeof(Dictionary<Hero, Dictionary<Goal, CampaignTime>>));
+            ConstructContainerDefinition(typeof(Dictionary<ContractDuty, CampaignTime>));
+            ConstructContainerDefinition(typeof(List<ContractAspect>));
+            ConstructContainerDefinition(typeof(Dictionary<MobileParty, Travel>)); 
         }
     }
 }

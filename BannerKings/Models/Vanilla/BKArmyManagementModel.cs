@@ -1,4 +1,4 @@
-﻿using BannerKings.Extensions;
+using BannerKings.Extensions;
 using BannerKings.Managers.Court;
 using BannerKings.Managers.Education;
 using BannerKings.Managers.Kingdoms.Policies;
@@ -19,6 +19,8 @@ namespace BannerKings.Models.Vanilla
     {
         public bool CanCreateArmy(Hero armyLeader)
         {
+            if (armyLeader.Clan == null) return false;
+
             var kingdom = armyLeader.Clan.Kingdom;
             if (kingdom != null)
             {
@@ -111,9 +113,9 @@ namespace BannerKings.Models.Vanilla
                 }
             }
 
-            if (army.MapFaction != null)
+            if (army.Kingdom != null)
             {
-                FeudalTitle kingdomTitle = BannerKingsConfig.Instance.TitleManager.GetSovereignTitle(army.MapFaction);
+                FeudalTitle kingdomTitle = BannerKingsConfig.Instance.TitleManager.GetSovereignTitle(army.Kingdom);
                 if (kingdomTitle != null)
                 {
                     if (kingdomTitle.Contract.IsLawEnacted(DefaultDemesneLaws.Instance.ArmyHorde))
@@ -128,7 +130,7 @@ namespace BannerKings.Models.Vanilla
             }
 
             result.Add(result.ResultNumber * -BannerKingsSettings.Instance.CohesionBoost, 
-                new TaleWorlds.Localization.TextObject("{=!}Army Cohesion Boost"));
+                new TaleWorlds.Localization.TextObject("{=hpWaDjNM}Army Cohesion Boost"));
             return result;
         }
 

@@ -1,9 +1,12 @@
 using System.Collections.Generic;
 using System.Linq;
+using BannerKings.Behaviours.Diplomacy;
+using BannerKings.Behaviours.Diplomacy.Groups;
 using BannerKings.Managers.Helpers;
 using BannerKings.Managers.Institutions.Religions;
 using BannerKings.Managers.Skills;
 using BannerKings.Managers.Titles;
+using BannerKings.Managers.Titles.Governments;
 using BannerKings.Managers.Titles.Laws;
 using HarmonyLib;
 using TaleWorlds.CampaignSystem;
@@ -23,6 +26,7 @@ using TaleWorlds.GauntletUI;
 using TaleWorlds.GauntletUI.BaseTypes;
 using TaleWorlds.GauntletUI.GamepadNavigation;
 using TaleWorlds.Library;
+using TaleWorlds.LinQuick;
 using TaleWorlds.Localization;
 using static TaleWorlds.CampaignSystem.Election.KingSelectionKingdomDecision;
 using static TaleWorlds.CampaignSystem.Issues.CaravanAmbushIssueBehavior;
@@ -72,16 +76,11 @@ namespace BannerKings.Patches
                         if (hero.CanHaveRecruits)
                         {
                             bool flag = false;
-                            CharacterObject basicVolunteer = Campaign.Current.Models.VolunteerModel.GetBasicVolunteer(hero);
-                            if (data.MilitaryData.GetNotableManpower(data.MilitaryData.GetCharacterManpowerType(basicVolunteer),
-                                hero, data.EstateData) < 1f)
-                            {
-                                continue;
-                            }
+                            CharacterObject basicVolunteer = TaleWorlds.CampaignSystem.Campaign.Current.Models.VolunteerModel.GetBasicVolunteer(hero);
 
                             for (int i = 0; i < hero.VolunteerTypes.Length; i++)
                             {
-                                if (MBRandom.RandomFloat < Campaign.Current.Models.VolunteerModel.GetDailyVolunteerProductionProbability(hero, i, settlement))
+                                if (MBRandom.RandomFloat < TaleWorlds.CampaignSystem.Campaign.Current.Models.VolunteerModel.GetDailyVolunteerProductionProbability(hero, i, settlement))
                                 {
                                     CharacterObject characterObject = hero.VolunteerTypes[i];
                                     if (characterObject == null)
@@ -159,7 +158,7 @@ namespace BannerKings.Patches
                 foreach (Clan clan in __instance.Kingdom.Clans)
                 {
                     var council = BannerKingsConfig.Instance.CourtManager.GetCouncil(clan);
-                    if (council != null && council.Peerage != null)
+                    if (council != null && council.Peerage != null && !clan.IsUnderMercenaryService)
                     {
                         if (council.Peerage.CanVote)
                         {
@@ -284,43 +283,13 @@ namespace BannerKings.Patches
     namespace Fixes
     {
         // Fix crash on wanderer same gender child born
-        [HarmonyPatch(typeof(NameGenerator), "GenerateHeroFullName")]
-        internal class NameGeneratorPatch
-        {
-            private static bool Prefix(ref TextObject __result, Hero hero, TextObject heroFirstName,
-                bool useDeterministicValues = true)
-            {
-                var parent = hero.IsFemale ? hero.Mother : hero.Father;
-                if (parent == null)
-                {
-                    return true;
-                }
-
-                if (BannerKingsConfig.Instance.TitleManager.IsHeroKnighted(parent) && hero.IsWanderer)
-                {
-                    var textObject = heroFirstName;
-                    textObject.SetTextVariable("FEMALE", hero.IsFemale ? 1 : 0);
-                    textObject.SetTextVariable("IMPERIAL", hero.Culture.StringId == "empire" ? 1 : 0);
-                    textObject.SetTextVariable("COASTAL",
-                        hero.Culture.StringId is "empire" or "vlandia" ? 1 : 0);
-                    textObject.SetTextVariable("NORTHERN",
-                        hero.Culture.StringId is "battania" or "sturgia" ? 1 : 0);
-                    textObject.SetCharacterProperties("HERO", hero.CharacterObject);
-                    textObject.SetTextVariable("FIRSTNAME", heroFirstName);
-                    __result = textObject;
-                    return false;
-                }
-
-                return true;
-            }
-        }
+       
 
         [HarmonyPatch(typeof(GauntletGamepadNavigationManager), "OnWidgetNavigationStatusChanged")]
         internal class NavigationPatch
         {
-            private static bool Prefix(GauntletGamepadNavigationManager __instance, EventManager source, Widget widget)
+            private static bool Prefix(Widget widget)
             {
-
                 return false;
             }
         }
@@ -408,21 +377,6 @@ namespace BannerKings.Patches
             }
         }
 
-        [HarmonyPatch(typeof(EscortMerchantCaravanIssueBehavior), "ConditionsHold")]
-        internal class EscortCaravanConditionsHoldPatch
-        {
-            private static bool Prefix(Hero issueGiver, ref bool __result)
-            {
-                if (issueGiver.CurrentSettlement == null || issueGiver.CurrentSettlement.IsVillage)
-                {
-                    __result = false;
-                    return false;
-                }
-
-                return true;
-            }
-        }
-
         [HarmonyPatch(typeof(EscortMerchantCaravanIssue), "IssueStayAliveConditions")]
         internal class EscortCaravanIssueStayAliveConditionsPatch
         {
@@ -485,9 +439,11 @@ namespace BannerKings.Patches
 
     namespace Government
     {
-        [HarmonyPatch(typeof(KingdomPolicyDecision), "IsAllowed")]
-        internal class PolicyIsAllowedPatch
+        [HarmonyPatch(typeof(KingSelectionKingdomDecision))]
+        internal class KingdomPolicyDecisionPatches
         {
+            [HarmonyPostfix]
+            [HarmonyPatch("IsAllowed", MethodType.Normal)]
             private static bool Prefix(ref bool __result, KingdomPolicyDecision __instance)
             {
                 if (BannerKingsConfig.Instance.TitleManager != null)
@@ -501,6 +457,39 @@ namespace BannerKings.Patches
                 }
 
                 return true;
+            }
+
+            [HarmonyPostfix]
+            [HarmonyPatch("DetermineSupport", MethodType.Normal)]
+            private static void OutcomeMeritPostfix(ref float __result, KingdomPolicyDecision __instance,
+                Clan clan, DecisionOutcome possibleOutcome)
+            {
+                KingdomPolicyDecision.PolicyDecisionOutcome policyDecisionOutcome = 
+                    possibleOutcome as KingdomPolicyDecision.PolicyDecisionOutcome;
+                BKDiplomacyBehavior behavior = TaleWorlds.CampaignSystem.Campaign.Current.GetCampaignBehavior<BKDiplomacyBehavior>();
+                KingdomDiplomacy diplomacy = behavior.GetKingdomDiplomacy(clan.Kingdom);
+     
+                if (diplomacy != null)
+                {
+                    InterestGroup group = diplomacy.GetHeroGroup(clan.Leader);
+                    if (group != null)
+                    {
+                        bool neutral = true;
+                        bool supports = false;
+                        if (group.SupportedPolicies.Contains(__instance.Policy))
+                        {
+                            neutral = false;
+                            supports = policyDecisionOutcome.ShouldDecisionBeEnforced;
+                        }
+                        else if (group.ShunnedPolicies.Contains(__instance.Policy))
+                        {
+                            neutral = false;
+                            supports = !policyDecisionOutcome.ShouldDecisionBeEnforced;
+                        }
+
+                        if (!neutral) __result += supports ? 80f : -80;
+                    }
+                }
             }
         }
 
@@ -564,30 +553,21 @@ namespace BannerKings.Patches
                 return false;
             }
 
-            [HarmonyPostfix]
+            [HarmonyPrefix]
             [HarmonyPatch("CalculateMeritOfOutcome")]
-            private static void CalculateMeritOfOutcomePostfix(SettlementClaimantDecision __instance,
+            private static bool CalculateMeritOfOutcomePrefix(SettlementClaimantDecision __instance,
                DecisionOutcome candidateOutcome, ref float __result)
             {
-                if (BannerKingsConfig.Instance.TitleManager != null)
-                {
-                    __result *= 100f;
-                    SettlementClaimantDecision.ClanAsDecisionOutcome clanAsDecisionOutcome = (SettlementClaimantDecision.ClanAsDecisionOutcome)candidateOutcome;
-                    Clan clan = clanAsDecisionOutcome.Clan;
+                SettlementClaimantDecision.ClanAsDecisionOutcome clanAsDecisionOutcome = (SettlementClaimantDecision.ClanAsDecisionOutcome)candidateOutcome;  
+                Settlement s = __instance.Settlement;
+                ExplainedNumber result = BannerKingsConfig.Instance.DiplomacyModel.CalculateHeroFiefScore(s,
+                    clanAsDecisionOutcome.Clan.Leader);
 
-                    if (BannerKingsConfig.Instance.ReligionsManager.HasBlessing(clan.Leader, DefaultDivinities.Instance.AseraMain))
-                    {
-                        __result *= 0.2f;
-                    }
-
-                    var limit = BannerKingsConfig.Instance.StabilityModel.CalculateDemesneLimit(clan.Leader).ResultNumber;
-                    var current = BannerKingsConfig.Instance.StabilityModel.CalculateCurrentDemesne(clan).ResultNumber;
-                    float factor = current / limit;
-                    __result *= 1f - factor;
-                }
+                __result = result.ResultNumber;
+                return false;
             }
 
-            [HarmonyPostfix]
+           /* [HarmonyPostfix]
             [HarmonyPatch("ShouldBeCancelledInternal")]
             private static void ShouldBeCancelledInternalPostfix(SettlementClaimantDecision __instance, ref bool __result)
             {
@@ -595,7 +575,7 @@ namespace BannerKings.Patches
                 {
                     __result = true;
                 }
-            }
+            }*/
         }
     }
 }

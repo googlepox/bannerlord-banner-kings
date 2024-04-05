@@ -1,12 +1,14 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using BannerKings.Behaviours.Diplomacy;
 using BannerKings.Managers.Court;
 using BannerKings.Managers.Court.Grace;
 using BannerKings.Managers.Court.Members;
 using BannerKings.Managers.Education.Languages;
 using BannerKings.UI.Items;
 using BannerKings.UI.Items.UI;
+using BannerKings.Utils.Models;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.CampaignBehaviors;
 using TaleWorlds.CampaignSystem.ViewModelCollection;
@@ -34,7 +36,7 @@ namespace BannerKings.UI.Court
             suppliesSelector, securitySelector, lodgingsSelector;
 
         private readonly ITeleportationCampaignBehavior teleportationBehavior =
-            Campaign.Current.GetCampaignBehavior<ITeleportationCampaignBehavior>();
+            TaleWorlds.CampaignSystem.Campaign.Current.GetCampaignBehavior<ITeleportationCampaignBehavior>();
 
         public CourtVM(bool royal) : base(null, false)
         {
@@ -116,6 +118,23 @@ namespace BannerKings.UI.Court
             {
                 Guests.Add(new ClanLordItemVM(guest, teleportationBehavior, null, SetCurrentCharacter,
                         OnRequestRecall, OnRequestRecall));
+            }
+
+            KingdomDiplomacy diplomacy = TaleWorlds.CampaignSystem.Campaign.Current.GetCampaignBehavior<BKDiplomacyBehavior>()
+                .GetKingdomDiplomacy(council.Clan.Kingdom);
+            if (council.IsRoyal && diplomacy != null)
+            {
+                BKExplainedNumber legitimacy = diplomacy.LegitimacyTargetExplained;
+                CourtInfo.Add(new InformationElement(new TextObject("Legitimacy:").ToString(),
+                    new TextObject("{=FgAWmeXm}{GRACE} / {TOTAL} ({CHANGE} / day)")
+                    .SetTextVariable("GRACE", FormatValue(diplomacy.Legitimacy))
+                    .SetTextVariable("TOTAL", FormatValue(legitimacy.ResultNumber))
+                    .SetTextVariable("CHANGE", FormatFloatGain(diplomacy.LegitimacyChange * 100f))
+                    .ToString(),
+                    new TextObject("Legitimacy represents how a ruler is seen by the other members of a realm, concerning their right to rule.{newline}{newline}Legitimacy Target: {TARGET}{newline}{newline}{EXPLANATIONS}")
+                    .SetTextVariable("TARGET", FormatValue(legitimacy.ResultNumber))
+                    .SetTextVariable("EXPLANATIONS", legitimacy.GetFormattedPercentage())
+                    .ToString()));
             }
 
             if (council.CourtGrace != null)

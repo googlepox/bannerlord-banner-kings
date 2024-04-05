@@ -1,5 +1,5 @@
+using BannerKings.Behaviours.Diplomacy;
 using BannerKings.Managers.Institutions.Guilds;
-using BannerKings.Models.Vanilla;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.Settlements;
@@ -27,12 +27,10 @@ namespace BannerKings.Managers.Populations
         [SaveableProperty(2)] private float[] satisfactions { get; set; }
 
         [SaveableProperty(3)] private float stateSlaves { get; set; }
+        [SaveableProperty(4)] public int ConsumedValue { get; set; }
 
         public Guild Guild => guild;
-
-        public float Corruption => 1f;
-
-        public float Tariff => new BKTaxModel().GetTownTaxRatio(settlement.Town);
+        public float Tariff => BannerKingsConfig.Instance.TaxModel.GetTownTaxRatio(settlement.Town);
 
         public int CaravanFee(MobileParty caravan)
         {
@@ -41,6 +39,14 @@ namespace BannerKings.Managers.Populations
             {
                 if (caravan.MapFaction != settlement.MapFaction)
                 {
+                    if (caravan.MapFaction.IsKingdomFaction && settlement.MapFaction.IsKingdomFaction)
+                    {
+                        var diplomacy = TaleWorlds.CampaignSystem.Campaign.Current.GetCampaignBehavior<BKDiplomacyBehavior>().GetKingdomDiplomacy(settlement.MapFaction as Kingdom);
+                        if (diplomacy != null && diplomacy.HasTradePact(caravan.MapFaction as Kingdom))
+                        {
+                            return 0;
+                        }
+                    }
                     result += caravan.MemberRoster.TotalManCount;
                     result += (int)(200 * Mercantilism.ResultNumber);
                 }
@@ -70,13 +76,13 @@ namespace BannerKings.Managers.Populations
             BannerKingsConfig.Instance.AdministrativeModel.CalculateEffect(settlement);
 
         public float MerchantRevenue => settlement.Town != null
-            ? BannerKingsConfig.Instance.EconomyModel.GetMerchantIncome(settlement.Town)
+            ? BannerKingsConfig.Instance.EconomyModel.GetMerchantIncome(settlement.Town).ResultNumber
             : 0f;
 
         public ExplainedNumber CaravanAttraction =>
-            BannerKingsConfig.Instance.EconomyModel.CalculateCaravanAttraction(settlement);
+            BannerKingsConfig.Instance.EconomyModel.CalculateTradePower(settlement);
 
-        public ExplainedNumber Mercantilism => BannerKingsConfig.Instance.EconomyModel.CalculateEffect(settlement);
+        public ExplainedNumber Mercantilism => BannerKingsConfig.Instance.EconomyModel.CalculateMercantilism(settlement);
 
         public ExplainedNumber ProductionEfficiency =>
             BannerKingsConfig.Instance.EconomyModel.CalculateProductionEfficiency(settlement);

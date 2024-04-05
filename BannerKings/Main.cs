@@ -1,18 +1,19 @@
 ﻿using BannerKings.Behaviours;
 using BannerKings.Behaviours.Criminality;
+using BannerKings.Behaviours.Diplomacy;
 using BannerKings.Behaviours.Diseases;
 using BannerKings.Behaviours.Feasts;
 using BannerKings.Behaviours.Innovations;
 using BannerKings.Behaviours.Marriage;
 using BannerKings.Behaviours.PartyNeeds;
 using BannerKings.Behaviours.Retainer;
+using BannerKings.Behaviours.Mercenary;
 using BannerKings.Behaviours.Workshops;
 using BannerKings.Managers.Buildings;
 using BannerKings.Managers.Innovations;
 using BannerKings.Managers.Innovations.Eras;
 using BannerKings.Managers.Kingdoms.Policies;
 using BannerKings.Managers.Skills;
-using BannerKings.Managers.Traits;
 using BannerKings.Models.Vanilla;
 using BannerKings.Settings;
 using BannerKings.UI;
@@ -21,6 +22,10 @@ using HarmonyLib;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.Core;
 using TaleWorlds.MountAndBlade;
+using BannerKings.Managers.Innovations.Eras;
+using BannerKings.Behaviours.Innovations;
+using BannerKings.Behaviours.Shipping;
+using BannerKings.Campaign.Skills;
 
 namespace BannerKings
 {
@@ -35,8 +40,8 @@ namespace BannerKings
             {
                 return;
             }
-
-            campaignStarter.AddBehavior(new BKSettlementBehavior());
+            
+            campaignStarter.AddBehavior(new BKManagerBehavior());
             campaignStarter.AddBehavior(new BKEducationBehavior());
             campaignStarter.AddBehavior(new BKSettlementActions());
             campaignStarter.AddBehavior(new BKKnighthoodBehavior());
@@ -69,9 +74,14 @@ namespace BannerKings
             campaignStarter.AddBehavior(new BKWorkshopBehavior());
             campaignStarter.AddBehavior(new BKGentryBehavior());
             campaignStarter.AddBehavior(new BKBanditBehavior());
+            campaignStarter.AddBehavior(new BKDiplomacyBehavior());
             campaignStarter.AddBehavior(new BKCriminalityBehavior());
             campaignStarter.AddBehavior(new BKTraitBehavior());
             campaignStarter.AddBehavior(new BKPartyNeedsBehavior());
+            campaignStarter.AddBehavior(new BKShippingBehavior());
+            campaignStarter.AddBehavior(new BKMercenaryCareerBehavior());
+            campaignStarter.AddBehavior(new BKRelationsBehavior());
+            campaignStarter.AddBehavior(new BKSettlementBehavior());
             campaignStarter.AddBehavior(new BKDiseaseBehavior());
 
             campaignStarter.AddModel(new BKPrisonerModel());
@@ -113,32 +123,37 @@ namespace BannerKings
             campaignStarter.AddModel(new BKInventoryCapacityModel());
             campaignStarter.AddModel(new BKMapVisibilityModel());
             campaignStarter.AddModel(new BKPartyImpairmentModel());
-            campaignStarter.AddModel(new BKCrimeModel());
+            campaignStarter.AddModel(BannerKingsConfig.Instance.CrimeModel);
             campaignStarter.AddModel(new BKTroopUpgradeModel());
             campaignStarter.AddModel(new BKBattleRewardModel());
             campaignStarter.AddModel(new BKCombatXpModel());
             campaignStarter.AddModel(new BKBattleMoraleModel());
             campaignStarter.AddModel(BannerKingsConfig.Instance.LearningModel);
-            campaignStarter.AddModel(BannerKingsConfig.Instance.KingdomDecisionModel);
-            campaignStarter.AddModel(new BKPartyFoodBuyingModel());
+            campaignStarter.AddModel(BannerKingsConfig.Instance.KingdomDecisionModel);  
             campaignStarter.AddModel(new BKPregnancyModel());
             campaignStarter.AddModel(new BKPartyHealingModel());
             campaignStarter.AddModel(new BKBanditModel());
             campaignStarter.AddModel(new BKPartyTrainningModel());
-            if (BannerKingsSettings.Instance.DiplomacyChanges)
-            {
-                campaignStarter.AddModel(new BKDiplomacyModel());
-            }
+            campaignStarter.AddModel(new BKDiplomacyModel());
+            //campaignStarter.AddModel(new BKTargetScoreModel());
+            campaignStarter.AddModel(new BKPartyBuyingFoodModel());
+            campaignStarter.AddModel(new BKCategorySelector());
+            campaignStarter.AddModel(new BKSettlementAccessModel());
 
             BKAttributes.Instance.Initialize();
             BKSkills.Instance.Initialize();
-            BKPerks.Instance.Initialize();
+            BKSkillEffects.Instance.Initialize();
+            BKPerks.Instance.Initialize();   
             BKPolicies.Instance.Initialize();
             DefaultEras.Instance.Initialize();
             DefaultInnovations.Instance.Initialize();
             BKBuildings.Instance.Initialize();
 
+            DefaultMercenaryPrivileges.Instance.Initialize();
+            DefaultCustomTroopPresets.Instance.Initialize();
+
             UIManager.Instance.SetScreen(new BannerKingsScreen());
+            //TaleWorlds.CampaignSystem.Campaign.Current.TournamentManager = new BKTournamentManager();
         }
 
         protected override void OnSubModuleLoad()

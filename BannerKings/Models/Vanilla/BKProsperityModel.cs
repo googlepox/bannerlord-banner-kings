@@ -51,38 +51,6 @@ namespace BannerKings.Models.Vanilla
                 baseResult.Add(0.1f, BKPerks.Instance.RitterPettySuzerain.Name);
             }
 
-            var rel = BannerKingsConfig.Instance.ReligionsManager.GetHeroReligion(owner);
-            if ((village.VillageType == DefaultVillageTypes.DateFarm || village.VillageType == DefaultVillageTypes.DesertHorseRanch) 
-                && BannerKingsConfig.Instance.ReligionsManager.HasBlessing(owner, DefaultDivinities.Instance.AseraSecondary3, rel)) 
-            {
-                baseResult.Add(0.1f, DefaultDivinities.Instance.AseraSecondary3.Name);
-            }
-
-            if (BannerKingsConfig.Instance.ReligionsManager.HasBlessing(owner, DefaultDivinities.Instance.AmraMain, rel) 
-                && (village.VillageType == DefaultVillageTypes.HogFarm || village.VillageType == DefaultVillageTypes.CattleRange ||
-                village.VillageType == DefaultVillageTypes.Lumberjack)) 
-            {
-                baseResult.Add(0.2f, DefaultDivinities.Instance.AmraMain.Name);
-            }
-
-            if (BannerKingsConfig.Instance.ReligionsManager.HasBlessing(owner, DefaultDivinities.Instance.TreeloreMoon, rel))
-            {
-                if (rel.FavoredCultures.Contains(village.Settlement.Culture))
-                {
-                    baseResult.Add(0.08f, DefaultDivinities.Instance.TreeloreMoon.Name);
-                }
-            }
-
-            if (BannerKingsConfig.Instance.ReligionsManager.HasBlessing(owner, DefaultDivinities.Instance.Horsa, rel))
-            {
-                baseResult.Add(0.05f, DefaultDivinities.Instance.Oca.Name);
-            }
-
-            if (BannerKingsConfig.Instance.ReligionsManager.HasBlessing(owner, DefaultDivinities.Instance.WindEast, rel))
-            {
-                baseResult.Add(0.05f, DefaultDivinities.Instance.WindEast.Name);
-            }
-
             var data = BannerKingsConfig.Instance.PopulationManager.GetPopData(village.Settlement);
             if (data != null)
             {
@@ -128,6 +96,8 @@ namespace BannerKings.Models.Vanilla
 
             ExplainedNumber explainedNumber = new ExplainedNumber(0f, true);
             PopulationData data = BannerKingsConfig.Instance.PopulationManager.GetPopData(fortification.Settlement);
+            if (data == null) return base.CalculateProsperityChange(fortification, includeDescriptions);
+
             float craftsmen = data.GetTypeCount(PopType.Craftsmen);
             explainedNumber.Add(craftsmen * 0.0005f, new TextObject("Craftsmen output"));
 
@@ -313,9 +283,12 @@ namespace BannerKings.Models.Vanilla
             }
 
             InnovationData innovationData = BannerKingsConfig.Instance.InnovationsManager.GetInnovationData(fortification.Culture);
-            if (innovationData.HasFinishedInnovation(DefaultInnovations.Instance.PublicWorks))
+            if (innovationData != null)
             {
-                explainedNumber.Add(1.5f, DefaultInnovations.Instance.PublicWorks.Name);
+                if (innovationData.HasFinishedInnovation(DefaultInnovations.Instance.PublicWorks))
+                {
+                    explainedNumber.Add(1.5f, DefaultInnovations.Instance.PublicWorks.Name);
+                }
             }
 
             AddDemesneLawEffect(data, ref explainedNumber);
@@ -324,7 +297,7 @@ namespace BannerKings.Models.Vanilla
 
         private void GetSettlementProsperityChangeDueToIssues(Settlement settlement, ref ExplainedNumber result)
         {
-            Campaign.Current.Models.IssueModel.GetIssueEffectsOfSettlement(DefaultIssueEffects.SettlementProsperity,
+            TaleWorlds.CampaignSystem.Campaign.Current.Models.IssueModel.GetIssueEffectsOfSettlement(DefaultIssueEffects.SettlementProsperity,
                 settlement, ref result);
         }
 

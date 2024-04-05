@@ -321,7 +321,7 @@ namespace BannerKings.Models.BKModels
                 }
                 else if (title.Contract.IsLawEnacted(DefaultDemesneLaws.Instance.EstateTenureFeeTail) && estate.Duty == EstateDuty.Taxation)
                 {
-                    result.Add(0.075f, DefaultDemesneLaws.Instance.EstateTenureFeeTail.Name);
+                    result.AddFactor(-0.5f, DefaultDemesneLaws.Instance.EstateTenureFeeTail.Name);
                 }
             }
 
@@ -329,20 +329,21 @@ namespace BannerKings.Models.BKModels
             switch (taxType)
             {
                 case BKTaxPolicy.TaxType.Low:
-                    factor = 0.15f;
+                    factor = 0.05f;
                     break;
                 case BKTaxPolicy.TaxType.High:
-                    factor = 0.45f;
+                    factor = 0.3f;
                     break;
                 case BKTaxPolicy.TaxType.Exemption:
                     factor = 0f;
                     break;
                 default:
-                    factor = 0.3f;
+                    factor = 0.15f;
                     break;
             }
 
-            result.Add(factor, new TextObject("{=L7QhNa6a}Tax policy"));
+            result.Add(factor, new TextObject("{=4ioUfApH}Tax policy at {FIEF}")
+                .SetTextVariable("FIEF", settlement.Name));
             return result;
         }
 
@@ -355,22 +356,37 @@ namespace BannerKings.Models.BKModels
             if (settlement.IsVillage)
             {
                 var data = BannerKingsConfig.Instance.PopulationManager.GetPopData(estate.EstatesData.Settlement);
-                float proportion = MathF.Clamp(estate.AvailableWorkForce / (float)(data.GetTypeCount(PopType.Slaves) + data.GetTypeCount(PopType.Serfs)), 
-                    0f, 1f);
-                float production = BannerKingsConfig.Instance.VillageProductionModel.CalculateProductionsExplained(settlement.Village).ResultNumber;
-
-                result.Add(production * proportion, new TextObject("{=8mOMavNZ}Total production proportion"));
+                float proportion = GetEstateWorkforceProportion(estate, data);
+                result.Add(proportion * 100f, new TextObject("{=8mOMavNZ}Total production proportion"));
             }
 
             return result;
         }
 
+        public ExplainedNumber CalculateEstateManpower(Estate estate, bool descriptions = false)
+        {
+            var result = new ExplainedNumber(0f, descriptions);
+
+            result.Add((int)estate.PopulationCapacity.ResultNumber, new TextObject("{=OBAkW4VT}Population Capacity"));
+            var settlement = estate.EstatesData.Settlement;
+            float militarism = BannerKingsConfig.Instance.VolunteerModel.GetMilitarism(settlement).ResultNumber;
+            result.AddFactor(militarism - 1f, new TextObject("{=vTg1TpWq}Militarism of {FIEF}")
+                .SetTextVariable("FIEF", settlement.Name));
+
+            if (estate.Task == EstateTask.Military)
+                result.AddFactor(0.25f, GameTexts.FindText("str_bk_estate_task", EstateTask.Military.ToString()));
+            return result;
+        }
+
         public ExplainedNumber CalculateAcrePrice(Settlement settlement, bool explanations = false)
         {
-            var result = new ExplainedNumber(450f, explanations);
+            var result = new ExplainedNumber(100f, explanations);
             if (settlement.IsVillage)
             {
                 result.Add(settlement.Village.Hearth * 0.1f, GameTexts.FindText("str_map_tooltip_hearths"));
+                Town town = settlement.Village.Bound.Town;
+                result.Add(town.Prosperity / 50f, new TextObject("{=byjOdZ8U}Prosperity of {TOWN}")
+                    .SetTextVariable("TOWN", town.Name));
             }
 
             return result;
@@ -386,7 +402,8 @@ namespace BannerKings.Models.BKModels
             result.Add(acrePrice * estate.Pastureland * 0.5f, new TextObject("{=ngRhXYj1}Pasturelands"));
             result.Add(acrePrice * estate.Woodland * 0.15f, new TextObject("{=qPQ7HKgG}Woodlands"));
 
-            result.Add(estate.TaxAccumulated, new TextObject("{=arehLYHe}Accumulated taxes"));
+            result.Add(estate.TaxAccumulated, new TextObject("{=kyB8tkgY}Current Income"));
+            result.Add(estate.LastIncome * CampaignTime.DaysInYear, new TextObject("{=8xNix2pu}Yearly income"));
             /*var title = BannerKingsConfig.Instance.TitleManager.GetTitle(settlement);
             if (title != null)
             {
@@ -414,10 +431,8 @@ namespace BannerKings.Models.BKModels
 
         public float GetEstateWorkforceProportion(Estate estate, PopulationData data)
         {
-            float serfs = data.GetTypeCount(Managers.PopulationManager.PopType.Serfs);
-            float slaves = data.GetTypeCount(Managers.PopulationManager.PopType.Slaves);
-
-            return MathF.Clamp((estate.Serfs + estate.Slaves) / (serfs + slaves), 0f, 1f);
+            float workforce = data.LandData.AvailableWorkForce;
+            return MathF.Clamp((estate.Population + estate.Slaves) / workforce, 0f, 1f);
         }
     }
 }

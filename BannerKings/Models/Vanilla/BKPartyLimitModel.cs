@@ -2,6 +2,7 @@ using BannerKings.Behaviours;
 using BannerKings.Behaviours.PartyNeeds;
 using BannerKings.Components;
 using BannerKings.Managers.CampaignStart;
+using BannerKings.Managers.Cultures;
 using BannerKings.Managers.Education.Lifestyles;
 using BannerKings.Managers.Skills;
 using BannerKings.Settings;
@@ -28,10 +29,10 @@ namespace BannerKings.Models.Vanilla
             var leader = party.MobileParty.LeaderHero;
             if (leader != null)
             {
-                if (leader.IsClanLeader()) baseResult.AddFactor(BannerKingsSettings.Instance.PartySizes, 
-                    new TextObject("{=!}Party Size Scaling"));
-                else baseResult.AddFactor(BannerKingsSettings.Instance.PartySizes * 0.5f, 
-                    new TextObject("{=!}Party Size Scaling"));
+                if (leader.IsClanLeader()) baseResult.AddFactor(BannerKingsSettings.Instance.PartySizes - 1f, 
+                    new TextObject("{=mSLQa207}Party Size Scaling"));
+                else baseResult.AddFactor((BannerKingsSettings.Instance.PartySizes -1f) * 0.5f, 
+                    new TextObject("{=mSLQa207}Party Size Scaling"));
 
                 var data = BannerKingsConfig.Instance.EducationManager.GetHeroEducation(leader);
                 if (data.Perks.Contains(BKPerks.Instance.AugustCommander))
@@ -49,7 +50,7 @@ namespace BannerKings.Models.Vanilla
                     baseResult.AddFactor(0.08f, BKPerks.Instance.CommanderWarband.Name);
                 }
 
-                if (leader.Clan == Clan.PlayerClan && Campaign.Current.GetCampaignBehavior<BKCampaignStartBehavior>().HasDebuff(DefaultStartOptions.Instance.Gladiator))
+                if (leader.Clan == Clan.PlayerClan && TaleWorlds.CampaignSystem.Campaign.Current.GetCampaignBehavior<BKCampaignStartBehavior>().HasDebuff(DefaultStartOptions.Instance.Gladiator))
                 {
                     baseResult.AddFactor(-0.4f, DefaultStartOptions.Instance.Gladiator.Name);
                 }
@@ -74,39 +75,29 @@ namespace BannerKings.Models.Vanilla
                         DefaultSkills.Roguery.Name);
                 }
 
-                PartySupplies supplies = Campaign.Current.GetCampaignBehavior<BKPartyNeedsBehavior>().GetPartySupplies(party.MobileParty);
+                PartySupplies supplies = TaleWorlds.CampaignSystem.Campaign.Current.GetCampaignBehavior<BKPartyNeedsBehavior>().GetPartySupplies(party.MobileParty);
                 if (supplies != null)
                 {
                     if (party.MobileParty.MemberRoster.TotalManCount > supplies.MinimumSoldiersThreshold)
                     {
-                        float weapons = MathF.Min(supplies.WeaponsNeed / supplies.GetWeaponsCurrentNeed().ResultNumber,
-                            supplies.WeaponsNeed);
-                        float minValue = -baseResult.ResultNumber * 0.15f;
-                        baseResult.Add(MathF.Clamp(weapons, minValue, 0),
-                            new TextObject("{=7Y1M7b0R}Lacking weapon supplies"));
-
-                        float ammo = MathF.Min(supplies.ArrowsNeed / supplies.GetArrowsCurrentNeed().ResultNumber,
-                            supplies.ArrowsNeed);
-                        baseResult.Add(MathF.Clamp(ammo, minValue, 0), new TextObject("{=2Luts26h}Lacking ammunition supplies"));
-
-                        float mounts = MathF.Min(supplies.HorsesNeed / supplies.GetMountsCurrentNeed().ResultNumber,
-                            supplies.HorsesNeed);
-                        baseResult.Add(MathF.Clamp(mounts, minValue, 0), new TextObject("{=Ps0ugfFQ}Lacking mount supplies"));
-
-                        float shields = MathF.Min(supplies.ShieldsNeed / supplies.GetShieldsCurrentNeed().ResultNumber,
-                            supplies.ShieldsNeed);
-                        baseResult.Add(MathF.Clamp(shields, minValue, 0), new TextObject("{=ut6PVJ40}Lacking shield supplies"));
+                        baseResult.Add(-supplies.WeaponsNeed / 1f, new TextObject("{=7Y1M7b0R}Lacking weapon supplies"));
+                        baseResult.Add(-supplies.ArrowsNeed / 1f, new TextObject("{=2Luts26h}Lacking ammunition supplies"));
+                        baseResult.Add(-supplies.HorsesNeed / 1f, new TextObject("{=Ps0ugfFQ}Lacking mount supplies"));
+                        baseResult.Add(-supplies.ShieldsNeed / 1f, new TextObject("{=ut6PVJ40}Lacking shield supplies"));
                     }
                 }
-            }
 
-            if (BannerKingsConfig.Instance.PopulationManager.IsPopulationParty(party.MobileParty))
-            {
-                if (party.MobileParty.PartyComponent is PopulationPartyComponent)
+                var title = BannerKingsConfig.Instance.TitleManager.GetHighestTitle(leader);
+                if (title != null)
                 {
-                    baseResult.Add(50f);
+                    float type = (float)title.TitleType + 1;
+                    baseResult.AddFactor(0.4f / type, new TextObject("{=Cz0aNGdW}Highest title of rank {RANK}")
+                        .SetTextVariable("RANK", DefaultTitleNames.Instance.GetTitleName(leader.Culture, title.TitleType).Name));
                 }
             }
+
+            if (party.MobileParty.PartyComponent != null && party.MobileParty.PartyComponent is PopulationPartyComponent)
+                baseResult.Add(50f);
 
             return baseResult;
         }

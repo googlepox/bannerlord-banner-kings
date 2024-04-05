@@ -1,10 +1,12 @@
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using BannerKings.Managers.Institutions.Religions;
 using BannerKings.Managers.Institutions.Religions.Faiths;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.Core;
+using TaleWorlds.Library;
 using TaleWorlds.Localization;
 using TaleWorlds.SaveSystem;
 
@@ -28,7 +30,8 @@ namespace BannerKings.Managers
                     var newValueDic = new Dictionary<Hero, FaithfulData>();
                     foreach (var pair2 in pair.Value)
                     {
-                        if (pair2.Key != null && pair.Value != null && !newValueDic.ContainsKey(pair2.Key))
+                        if (pair2.Key != null && pair.Value != null && !newValueDic.ContainsKey(pair2.Key) &&
+                            pair2.Key.IsAlive)
                         {
                             newValueDic.Add(pair2.Key, pair2.Value);
                         }
@@ -57,6 +60,7 @@ namespace BannerKings.Managers
                 {
                     Religions.Add(religion, new Dictionary<Hero, FaithfulData>());
                     InitializeFaithfulHeroes(religion);
+                    religion.PostInitialize();
                 }
             }
 
@@ -102,6 +106,9 @@ namespace BannerKings.Managers
         public void PostInitialize()
         {
             DefaultDivinities.Instance.Initialize();
+            DefaultFaithGroups.Instance.Initialize();   
+            DefaultFaiths.Instance.Initialize();
+            List<Religion> delete = new List<Religion>();
             foreach (var pair in Religions.ToList())
             {
                 var rel = pair.Key;
@@ -110,21 +117,30 @@ namespace BannerKings.Managers
                     continue;
                 }
 
-                var faith = DefaultFaiths.Instance.GetById(rel.Faith.GetId());
-                var presets = CharacterObject.All.ToList().FindAll(x => x.Occupation == Occupation.Preacher && x.IsTemplate && x.StringId.Contains("bannerkings") && x.StringId.Contains(faith.GetId()));
-                foreach (var preset in presets)
+                Faith faith;
+                if (rel.Faith == null)
                 {
-                    var number = int.Parse(preset.StringId[preset.StringId.Length - 1].ToString());
-                    faith.AddPreset(number, preset);
+                    faith = DefaultFaiths.Instance.GetById(rel.StringId);
+                }
+                else
+                {
+                    faith = DefaultFaiths.Instance.GetById(rel.Faith.GetId());
                 }
 
-                rel.PostInitialize(faith);
+                if (faith == null)
+                {
+                    delete.Add(rel);
+                    continue;
+                }
 
+                rel.PostInitialize();
                 foreach(var keyPair in pair.Value)
                 {
                     keyPair.Value.PostInitialize();
                 }
             }
+
+            foreach (var rel in delete) Religions.Remove(rel);
 
             RefreshCaches();
         }
@@ -155,7 +171,7 @@ namespace BannerKings.Managers
         public void ExecuteRemoveHero(Hero hero, bool isConversion = false)
         {
             var rel = GetHeroReligion(hero);
-            if (IsPreacher(hero))
+            /*if (IsPreacher(hero))
             {
                 var clergyman = GetClergymanFromHeroHero(hero);
                 if (clergyman != null)
@@ -163,7 +179,7 @@ namespace BannerKings.Managers
                     rel = GetClergymanReligion(clergyman);
                     rel.RemoveClergyman(clergyman);
                 }
-            }
+            }*/
 
             if (rel != null)
             {
@@ -185,7 +201,7 @@ namespace BannerKings.Managers
                 Religions[religion].Add(hero, new FaithfulData(0f));
                 if (HeroesCache != null)
                 {
-                    HeroesCache.Add(hero, religion);
+                    HeroesCache[hero] = religion;
                 }
             }
         }
@@ -197,42 +213,47 @@ namespace BannerKings.Managers
 
         public void AddToReligion(Hero hero, Religion religion)
         {
-            var conversion = GetHeroReligion(hero) != null;
-            ExecuteRemoveHero(hero);
-            ExecuteAddToReligion(hero, religion);
+            Religion rel = GetHeroReligion(hero);
+            var conversion = rel != null;
 
-            if (conversion)
+            if (rel != religion)
             {
-                if (hero.Clan != null)
-                {
-                    if (hero.Clan == Clan.PlayerClan)
-                    {
-                        MBInformationManager.AddQuickInformation(new TextObject("{=sjy26XtU}{HERO} has converted to the {FAITH} faith.")
-                                .SetTextVariable("HERO", hero.Name)
-                                .SetTextVariable("FAITH", religion.Faith.GetFaithName()),
-                            0, hero.CharacterObject, Utils.Helpers.GetKingdomDecisionSound());
-                    }
+                ExecuteRemoveHero(hero);
+                ExecuteAddToReligion(hero, religion);
 
-                    if (hero == hero.Clan.Leader)
+                if (conversion)
+                {
+                    if (hero.Clan != null)
                     {
-                        hero.Clan.Renown -= 100f;
+                        if (hero.Clan == Clan.PlayerClan)
+                        {
+                            MBInformationManager.AddQuickInformation(new TextObject("{=sjy26XtU}{HERO} has converted to the {FAITH} faith.")
+                                    .SetTextVariable("HERO", hero.Name)
+                                    .SetTextVariable("FAITH", religion.Faith.GetFaithName()),
+                                0, hero.CharacterObject, Utils.Helpers.GetKingdomDecisionSound());
+                        }
+
+                        if (hero == hero.Clan.Leader)
+                        {
+                            hero.Clan.Renown -= 100f;
+                        }
+                        else
+                        {
+                            hero.Clan.Renown -= 50f;
+                        }
                     }
-                    else
+                    else if (hero.IsNotable)
                     {
-                        hero.Clan.Renown -= 50f;
+                        hero.AddPower(-20f);
                     }
                 }
-                else if (hero.IsNotable)
+                else if (hero.Clan == Clan.PlayerClan)
                 {
-                    hero.AddPower(-20f);
+                    MBInformationManager.AddQuickInformation(new TextObject("{=sjy26XtU}{HERO} has converted to the {FAITH} faith.")
+                        .SetTextVariable("HERO", hero.Name)
+                        .SetTextVariable("FAITH", religion.Faith.GetFaithName()),
+                        0, hero.CharacterObject, Utils.Helpers.GetKingdomDecisionSound());
                 }
-            }
-            else if (hero.Clan == Clan.PlayerClan)
-            {
-                MBInformationManager.AddQuickInformation(new TextObject("{=sjy26XtU}{HERO} has converted to the {FAITH} faith.")
-                    .SetTextVariable("HERO", hero.Name)
-                    .SetTextVariable("FAITH", religion.Faith.GetFaithName()),
-                    0, hero.CharacterObject, Utils.Helpers.GetKingdomDecisionSound());
             }
         }
 
@@ -258,7 +279,10 @@ namespace BannerKings.Managers
                 new TextObject("{=VrzR1ZzZ}Your faith").ToString(),
                 new TextObject("{=ASWWGeQ3}You look up to the skies and realize there must be something more. You feel there must be a higher purpose for yourself, and people expect you to defend a certain faith. Upholding your cultural forefathers' faith would be considered most pious. Similarly, following a faith that accepts your culture would be pious, however not as much as your true ancestry. Alternatively, having a completely different faith is possible, though a less walked path. What is your faith?")
                     .ToString(),
-                elements, true, 1,
+                elements, 
+                true, 
+                1,
+                1,
                 GameTexts.FindText("str_done").ToString(), string.Empty, delegate(List<InquiryElement> element)
                 {
                     var religion = (Religion) element[0].Identifier;
@@ -362,6 +386,38 @@ namespace BannerKings.Managers
             return heroes;
         }
 
+        public Religion GetIdealReligion(Settlement settlement)
+        {
+            Religion result = null;
+            if (settlement.OwnerClan != null && settlement.OwnerClan.Leader != null)
+            {
+                foreach (var religion in Religions.Keys.ToList())
+                {
+                    if (!religion.Faith.Active) continue;
+
+                    if (religion.Faith.IsHeroNaturalFaith(settlement.OwnerClan.Leader))
+                    {
+                        result = religion;
+                    }
+                }
+            }
+           
+            if (result == null)
+            {
+                foreach (var religion in Religions.Keys.ToList())
+                {
+                    if (!religion.Faith.Active) continue;
+
+                    if (religion.Faith.IsCultureNaturalFaith(settlement.Culture))
+                    {
+                        result = religion;
+                    }
+                }
+            }
+
+            return result;
+        }
+
         public Religion GetIdealReligion(CultureObject culture)
         {
             Religion result = null;
@@ -402,9 +458,18 @@ namespace BannerKings.Managers
 
             if (notifyPlayer && hero == Hero.MainHero)
             {
-                MBInformationManager.AddQuickInformation(new TextObject("{=purf5QPz}{HERO} has recieved {PIETY} piety.")
-                    .SetTextVariable("HERO", hero.Name)
-                    .SetTextVariable("PIETY", piety));
+                if (piety < 0)
+                {
+                    MBInformationManager.AddQuickInformation(new TextObject("{=sNKchr3k}{HERO} has lost {PIETY} piety.")
+                                                            .SetTextVariable("HERO", hero.Name)
+                                                            .SetTextVariable("PIETY", MathF.Abs(piety)));
+                }
+                else
+                {
+                    MBInformationManager.AddQuickInformation(new TextObject("{=purf5QPz}{HERO} has recieved {PIETY} piety.")
+                                        .SetTextVariable("HERO", hero.Name)
+                                        .SetTextVariable("PIETY", piety));
+                }
             }
         }
 
@@ -421,17 +486,7 @@ namespace BannerKings.Managers
                 return;
             }
 
-            if (Religions[rel].ContainsKey(hero))
-            {
-                Religions[rel][hero].AddPiety(piety);
-            }
-
-            if (notifyPlayer && hero == Hero.MainHero)
-            {
-                MBInformationManager.AddQuickInformation(new TextObject("{=61jgyXzF}{HERO} piety was changed by {PIETY}.")
-                    .SetTextVariable("HERO", hero.Name)
-                    .SetTextVariable("PIETY", (int) piety));
-            }
+            AddPiety(rel, hero, piety, notifyPlayer);
         }
 
         public float GetPiety(Hero hero)

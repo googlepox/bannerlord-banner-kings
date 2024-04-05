@@ -8,11 +8,9 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using TaleWorlds.CampaignSystem;
-using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.CampaignSystem.Settlements.Buildings;
 using TaleWorlds.Core;
-using TaleWorlds.Library;
 using TaleWorlds.SaveSystem;
 
 namespace BannerKings.Managers
@@ -38,29 +36,14 @@ namespace BannerKings.Managers
             Tenants
         }
 
-        public PopulationManager(Dictionary<Settlement, PopulationData> pops, List<MobileParty> caravans)
+        public PopulationManager(Dictionary<Settlement, PopulationData> pops)
         {
             Populations = pops;
-            Caravans = caravans;
             Estates = new Dictionary<Hero, List<Estate>>();
         }
 
-        [SaveableProperty(1)]
-        private Dictionary<Settlement, PopulationData> Populations {
-            get; set;
-        }
-
-        [SaveableProperty(2)]
-        private List<MobileParty> Caravans {
-            get; set;
-        }
-
-        [SaveableProperty(3)]
-        private Dictionary<Hero, List<Estate>> Estates {
-            get; set;
-        }
-
-        public MBReadOnlyList<MobileParty> AllParties => new MBReadOnlyList<MobileParty>(Caravans);
+        [SaveableProperty(1)] private Dictionary<Settlement, PopulationData> Populations { get; set; }
+        private Dictionary<Hero, List<Estate>> Estates { get; set; }
 
         public void PostInitialize()
         {
@@ -72,6 +55,9 @@ namespace BannerKings.Managers
             foreach (var data in Populations.Values)
             {
                 data.VillageData?.ReInitializeBuildings();
+                if (data.EstateData != null)
+                    foreach (var estate in data.EstateData.Estates)
+                        estate.PostInitialize();    
                 data.DiseaseData?.ActiveDisease?.PostInitialize();
             }
         }
@@ -100,22 +86,21 @@ namespace BannerKings.Managers
         {
             try
             {
-                if (Populations.ContainsKey(settlement))
-                {
-                    return Populations[settlement];
-                }
-
-                if (settlement.StringId.Contains("Ruin") || settlement.StringId.Contains("tutorial"))
-                {
-                    return null;
-                }
-
                 if (!settlement.IsVillage && !settlement.IsTown && !settlement.IsCastle)
                 {
                     return null;
                 }
 
-                return null;
+                var equal = Populations.FirstOrDefault(x => x.Key.StringId == settlement.StringId).Key;
+                if (equal != null)
+                {
+                    return Populations[equal];
+                }
+                else
+                {
+                    InitializeSettlementPops(settlement);
+                    return Populations[settlement];
+                }
             }
             catch (Exception ex)
             {
@@ -132,24 +117,6 @@ namespace BannerKings.Managers
             if (!Populations.ContainsKey(settlement))
             {
                 Populations.Add(settlement, data);
-            }
-        }
-
-        public bool IsPopulationParty(MobileParty party)
-        {
-            return Caravans.Contains(party);
-        }
-
-        public void AddParty(MobileParty party)
-        {
-            Caravans.Add(party);
-        }
-
-        public void RemoveCaravan(MobileParty party)
-        {
-            if (Caravans.Contains(party))
-            {
-                Caravans.Remove(party);
             }
         }
 
@@ -436,8 +403,8 @@ namespace BannerKings.Managers
         {
             if (settlement.IsCastle)
             {
-                var prosperityFactor = 0.0001f * settlement.Prosperity + 1f;
-                return MBRandom.RandomInt((int)(2000 * prosperityFactor), (int)(3000 * prosperityFactor));
+                var prosperityFactor = 0.0001f * settlement.Town.Prosperity + 1f;
+                return MBRandom.RandomInt((int) (2000 * prosperityFactor), (int) (3000 * prosperityFactor));
             }
 
             if (settlement.IsVillage)
@@ -447,8 +414,8 @@ namespace BannerKings.Managers
 
             if (settlement.IsTown)
             {
-                var prosperityFactor = 0.0001f * settlement.Prosperity + 1f;
-                if (settlement.Owner is { IsFactionLeader: true })
+                var prosperityFactor = 0.0001f * settlement.Town.Prosperity + 1f;
+                if (settlement.Owner is {IsFactionLeader: true})
                 {
                     prosperityFactor *= 1.2f;
                 }

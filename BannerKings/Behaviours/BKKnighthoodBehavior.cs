@@ -9,6 +9,7 @@ using HarmonyLib;
 using SandBox.CampaignBehaviors;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Actions;
+using TaleWorlds.CampaignSystem.CampaignBehaviors;
 using TaleWorlds.CampaignSystem.Encounters;
 using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.ViewModelCollection;
@@ -167,8 +168,7 @@ namespace BannerKings.Behaviours
                             Hero.OneToOneConversationHero.IsFemale, false));
                     }
 
-                    return companion != null && companion.Clan == Clan.PlayerClan &&
-                           BannerKingsConfig.Instance.TitleManager.Knighthood;
+                    return companion != null && companion.Clan == Clan.PlayerClan;
                 },
                 delegate
                 {
@@ -374,6 +374,21 @@ namespace BannerKings.Behaviours
         private List<InquiryElement> GetAvailableEstates()
         {
             var result = new List<InquiryElement>();
+            var estates = BannerKingsConfig.Instance.PopulationManager.GetEstates(Hero.MainHero);
+            foreach (var estate in estates)
+            {
+                var settlement = estate.EstatesData.Settlement;
+                var action = BannerKingsConfig.Instance.EstatesModel.GetGrant(estate, Hero.MainHero, Hero.OneToOneConversationHero);
+                result.Add(new InquiryElement(estate,
+                    new TextObject("{=68m3U2ey}{VILLAGE} - {ACREAGE} acres")
+                    .SetTextVariable("VILLAGE", settlement.Name)
+                    .SetTextVariable("ACREAGE", estate.Acreage.ToString("0.00"))
+                    .ToString(),
+                    null,
+                    action.Possible,
+                    action.Reason.ToString()));
+            }
+
             var titles = BannerKingsConfig.Instance.TitleManager.GetAllDeJure(Hero.MainHero);
             foreach (var title in titles)
             {
@@ -659,6 +674,7 @@ namespace BannerKings.Behaviours
                     lordshipsToGive, 
                     false,
                     1,
+                    1,
                     GameTexts.FindText("str_done").ToString(), 
                     string.Empty,
                     delegate(List<InquiryElement> list)
@@ -676,6 +692,7 @@ namespace BannerKings.Behaviours
                     new TextObject("{=CN94YRec}Estates with bigger acreage are likely to yield more income to their holder.").ToString(), 
                     estatesToGive, 
                     false, 
+                    1,
                     1,
                     GameTexts.FindText("str_done").ToString(), 
                     string.Empty,
@@ -709,7 +726,7 @@ namespace BannerKings.Behaviours
             }
         }
 
-        [HarmonyPatch(typeof(LordConversationsCampaignBehavior), "FindSuitableCompanionsToLeadCaravan")]
+        [HarmonyPatch(typeof(CaravanConversationsCampaignBehavior), "FindSuitableCompanionsToLeadCaravan")]
         internal class SuitableCaravanLeaderPatch
         {
             private static bool Prefix(ref List<CharacterObject> __result)
@@ -811,11 +828,6 @@ namespace BannerKings.Behaviours
         {
             private static bool Prefix(ClanPartiesVM __instance, Clan ____faction)
             {
-                if (!BannerKingsConfig.Instance.TitleManager.Knighthood)
-                {
-                    return true;
-                }
-
                 if (!__instance.CanCreateNewParty)
                 {
                     return false;
@@ -890,7 +902,7 @@ namespace BannerKings.Behaviours
                         BindingFlags.NonPublic | BindingFlags.Instance);
                     MBInformationManager.ShowMultiSelectionInquiry(new MultiSelectionInquiryData(
                         new TextObject("{=pyhP5yWu}Select the Leader of the New Party").ToString(),
-                        string.Empty, list, true, 1, GameTexts.FindText("str_done").ToString(), "",
+                        string.Empty, list, true, 1, 1, GameTexts.FindText("str_done").ToString(), "",
                         delegate(List<InquiryElement> x) { method.Invoke(__instance, new object[] {x}); },
                         delegate(List<InquiryElement> x) { method.Invoke(__instance, new object[] {x}); }));
                 }

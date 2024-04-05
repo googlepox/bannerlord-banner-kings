@@ -15,6 +15,7 @@ using TaleWorlds.CampaignSystem.Settlements.Buildings;
 using TaleWorlds.Core;
 using TaleWorlds.Library;
 using TaleWorlds.Localization;
+using static BannerKings.Managers.PopulationManager;
 
 namespace BannerKings.Behaviours
 {
@@ -262,6 +263,7 @@ namespace BannerKings.Behaviours
             RunMines(town);
             RunStuds(town);
             RunMaterials(town);
+            RunPorts(town);
         }
 
         private void RunMaterials(Town town)
@@ -355,12 +357,43 @@ namespace BannerKings.Behaviours
 
                 if (currentHorses < horseLimit && MBRandom.RandomFloat < 0.02f)
                 {
-                    var horse = Campaign.Current.ObjectManager.GetObjectTypeList<ItemObject>()
+                    var horse = TaleWorlds.CampaignSystem.Campaign.Current.ObjectManager.GetObjectTypeList<ItemObject>()
                         .FirstOrDefault(x => x.ItemCategory == DefaultItemCategories.WarHorse && x.Culture == town.Culture);
                     town.Settlement.Stash.AddToCounts(horse, 1);
                 }
 
             }, GetType().Name);
+        }
+
+        private void RunPorts(Town town)
+        {
+            ExceptionUtils.TryCatch(() =>
+            {
+                var building = town.Buildings.FirstOrDefault(x => x.BuildingType.StringId == BKBuildings.Instance.Harbor.StringId ||
+                                        x.BuildingType.StringId == BKBuildings.Instance.Port.StringId);
+                if (building == null)
+                {
+                    return;
+                }
+               
+                if (building.CurrentLevel > 0)
+                {
+                    PopulationData data = town.Settlement.PopulationData();  
+                    int quantity = (int)MathF.Max((building.CurrentLevel * data.GetTypeCount(PopType.Tenants) / 300f),
+                        (building.CurrentLevel * data.GetTypeCount(PopType.Craftsmen) / 200f));
+                    ItemObject item = TaleWorlds.CampaignSystem.Campaign.Current.ObjectManager.GetObject<ItemObject>("fish");
+
+                    var itemPrice = town.GetItemPrice(item);
+                    var finalPrice = (int)(itemPrice * (float)quantity);
+                    if (town.Gold >= finalPrice)
+                    {
+                        town.Owner.ItemRoster.AddToCounts(item, quantity);
+                        town.ChangeGold(-finalPrice);
+                    }
+                }
+            },
+            GetType().Name,
+            false);
         }
 
         private void RunMines(Town town)
@@ -436,7 +469,9 @@ namespace BannerKings.Behaviours
                     }
 
                     InnovationData data = BannerKingsConfig.Instance.InnovationsManager.GetInnovationData(settlement.Culture);
-                    var availableBuildings = data.GetAvailableBuildings();
+                    if (data == null) continue;
+
+                    var availableBuildings = data.GetAvailableBuildings(settlement);
 
                     var toRemove = new List<BuildingType>();
                     foreach (var building in settlement.Town.Buildings)

@@ -246,6 +246,7 @@ namespace BannerKings.UI.Marriages
                 list,
                 true,
                 1,
+                1,
                 GameTexts.FindText("str_accept").ToString(),
                 string.Empty,
                 delegate (List<InquiryElement> list)
@@ -273,12 +274,17 @@ namespace BannerKings.UI.Marriages
                 list,
                 true,
                 1,
+                1,
                 GameTexts.FindText("str_accept").ToString(),
                 string.Empty,
                 delegate (List<InquiryElement> list)
                 {
-                    ProposedHero = new HeroVM((Hero)list[0].Identifier);
-                    InvertedClan = false;
+                    if (!list.IsEmpty())
+                    {
+                        ProposedHero = new HeroVM((Hero)list[0].Identifier);
+                        InvertedClan = false;
+                    }
+                   
                     RefreshValues();
                 },
                 null));
@@ -288,7 +294,7 @@ namespace BannerKings.UI.Marriages
         {
             if (ProposerHero != null && ProposedHero != null)
             {
-                Campaign.Current.GetCampaignBehavior<BKMarriageBehavior>().SetProposedMarriage(
+                TaleWorlds.CampaignSystem.Campaign.Current.GetCampaignBehavior<BKMarriageBehavior>().SetProposedMarriage(
                                new MarriageContract(ProposerHero.Hero,
                                ProposedHero.Hero,
                                GetFinalClan(),

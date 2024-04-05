@@ -49,7 +49,8 @@ namespace BannerKings.Models.BKModels
             result.LimitMax(1000f);
             if (data.Location != null)
             {
-                result.Add(data.Location.Prosperity * 0.05f, data.Location.Name);
+                result.Add(data.Location.Prosperity * 0.05f, new TextObject("{=kyB8tkgY}Court location ({NAME})")
+                    .SetTextVariable("NAME", data.Location.Name));
 
                 var lodgings = data.CourtGrace.GetExpense(CourtExpense.ExpenseType.Lodgings);
                 var servants = data.CourtGrace.GetExpense(CourtExpense.ExpenseType.Servants);
@@ -66,7 +67,10 @@ namespace BannerKings.Models.BKModels
             
             foreach (var position in data.Positions)
             {
-                result.Add(CalculatePositionGrace(position).ResultNumber, position.GetCulturalName());
+                if (position.Member != null) result.Add(CalculatePositionGrace(position).ResultNumber, 
+                    new TextObject("{=Bn4akxdA}{POSITION} position fulfilled by {HERO}")
+                    .SetTextVariable("POSITION", position.GetCulturalName())
+                    .SetTextVariable("HERO", position.Member.Name));
             }
 
             return result;
@@ -111,7 +115,7 @@ namespace BannerKings.Models.BKModels
                 FeudalTitle title = BannerKingsConfig.Instance.TitleManager.GetHighestTitle(data.Clan.Leader);
                 TitleType type = title != null ? title.TitleType : TitleType.Lordship;
                 if (type <= TitleType.Barony) result.Add(300f / (float)type, 
-                    new TextObject(Utils.Helpers.GetTitlePrefix(type, data.Clan.Culture)));
+                    Utils.TextHelper.GetTitlePrefix(type, data.Clan.Culture));
             }
 
             return result;
@@ -144,8 +148,8 @@ namespace BannerKings.Models.BKModels
 
             if (council.Location != null)
             {
-                float factor = Campaign.Current.Models.MapDistanceModel.GetDistance(target.Settlement,
-                council.Location.Settlement) / Campaign.AverageDistanceBetweenTwoFortifications;
+                float factor = TaleWorlds.CampaignSystem.Campaign.Current.Models.MapDistanceModel.GetDistance(target.Settlement,
+                council.Location.Settlement) / TaleWorlds.CampaignSystem.Campaign.AverageDistanceBetweenTwoFortifications;
                 result.AddFactor(factor, new TextObject("{=Frw4p1qD}Distance between {TOWN1} and {TOWN2}")
                     .SetTextVariable("TOWN1", target.Name)
                     .SetTextVariable("TOWN2", council.Location.Name));
@@ -243,6 +247,11 @@ namespace BannerKings.Models.BKModels
             CouncilMember targetPosition, CouncilMember currentPosition = null,
             bool appointed = false)
         {
+            if (targetPosition == null) return new CouncilAction(type, requester, targetPosition, currentPosition, council)
+            {
+                Possible = false,
+                Reason = new TextObject("{=o4f4jVRJ}Invalid position (null).")
+            };
             return type switch
             {
                 CouncilActionType.REQUEST => GetRequest(type, council, requester, targetPosition, currentPosition,
@@ -382,6 +391,13 @@ namespace BannerKings.Models.BKModels
                 action.Possible = false;
                 action.Reason = new TextObject("{=gzeVOEPX}{HERO} already fulfills a position of this type.")
                     .SetTextVariable("HERO", requester.Name);
+                return action;
+            }
+
+            if (requester.Clan != null && requester.Clan.IsUnderMercenaryService)
+            {
+                action.Possible = false;
+                action.Reason = new TextObject("{=0k2rUZbZ}Mercenaries can not fulfill council roles.");
                 return action;
             }
 

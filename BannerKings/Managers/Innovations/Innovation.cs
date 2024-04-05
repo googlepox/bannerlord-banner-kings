@@ -1,5 +1,8 @@
 ﻿using BannerKings.Managers.Innovations.Eras;
+using BannerKings.Managers.Skills;
 using TaleWorlds.CampaignSystem;
+using TaleWorlds.Core;
+using TaleWorlds.Library;
 using TaleWorlds.Localization;
 using TaleWorlds.SaveSystem;
 
@@ -7,29 +10,30 @@ namespace BannerKings.Managers.Innovations
 {
     public class Innovation : BannerKingsObject
     {
+        [field: SaveableField(100)] private float currentProgress;
+        [field: SaveableField(101)] private CultureObject culture;
         public Innovation(string id) : base(id)
         {
         }
 
         public void Initialize(TextObject name, TextObject description, TextObject effects, Era era, InnovationType type,
-            float requiredProgress = 1000f, CultureObject culture = null, Innovation requirement = null)
+            float requiredProgress = 1000f, Innovation requirement = null)
         {
             Initialize(name, description);
             Effects = effects;
             RequiredProgress = requiredProgress;
-            Culture = culture;
             Requirement = requirement;
             Era = era;
             Type = type;
         } 
 
-        public Innovation GetCopy()
+        public Innovation GetCopy(CultureObject culture)
         {
             Innovation innovation = DefaultInnovations.Instance.GetById(this);
             var newInnovation = new Innovation(innovation.StringId);
             newInnovation.Initialize(innovation.Name, innovation.Description, innovation.Effects, innovation.Era,
-                innovation.Type, innovation.RequiredProgress, innovation.Culture, innovation.Requirement);
-
+                innovation.Type, innovation.RequiredProgress, innovation.Requirement);
+            newInnovation.culture = culture;
             return newInnovation;
         }
 
@@ -37,7 +41,19 @@ namespace BannerKings.Managers.Innovations
         {
             Innovation innovation = DefaultInnovations.Instance.GetById(this);
             Initialize(innovation.Name, innovation.Description, innovation.Effects, innovation.Era,
-                innovation.Type, innovation.RequiredProgress, innovation.Culture, innovation.Requirement);
+                innovation.Type, innovation.RequiredProgress, innovation.Requirement);
+        }
+
+        public SkillObject ResearchSkill
+        {
+            get
+            {
+                if (Type == InnovationType.Building) return DefaultSkills.Engineering;
+                if (Type == InnovationType.Military) return DefaultSkills.Tactics;
+                if (Type == InnovationType.Agriculture) return DefaultSkills.Steward;
+                if (Type == InnovationType.Technology) return BKSkills.Instance.Scholarship;
+                return BKSkills.Instance.Lordship;
+            }
         }
 
         public bool Finished => CurrentProgress >= RequiredProgress;
@@ -45,13 +61,14 @@ namespace BannerKings.Managers.Innovations
         public InnovationType Type { get; private set; }
         public Innovation Requirement { get; private set; }
         public float RequiredProgress { get; private set; }
-        [field: SaveableField(100)] public float CurrentProgress { get; private set; }
-        public CultureObject Culture { get; private set; }
+
+        public float CurrentProgress => currentProgress;
+        public CultureObject Culture => culture;
         public TextObject Effects { get; private set; }
 
         public void AddProgress(float points)
         {
-            CurrentProgress += points;
+            currentProgress += points;
         }
 
         public enum InnovationType
@@ -67,7 +84,8 @@ namespace BannerKings.Managers.Innovations
         {
             if (obj is Innovation)
             {
-                return (obj as Innovation).StringId == StringId;
+                Innovation i = (Innovation)obj;
+                return i.StringId == StringId && i.culture == culture;
             }
             return base.Equals(obj);
         }

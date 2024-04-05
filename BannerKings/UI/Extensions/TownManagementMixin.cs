@@ -1,6 +1,6 @@
 using BannerKings.Managers.Items;
 using BannerKings.Managers.Populations;
-using BannerKings.UI.TownManagement;
+using BannerKings.UI.VanillaTabs.TownManagement;
 using Bannerlord.UIExtenderEx.Attributes;
 using Bannerlord.UIExtenderEx.ViewModels;
 using HarmonyLib;
@@ -58,7 +58,7 @@ namespace BannerKings.UI.Extensions
 
             MissingMaterials = materialsMissing;
 
-            ItemObject clay = Campaign.Current.ObjectManager.GetObject<ItemObject>("clay");
+            ItemObject clay = TaleWorlds.CampaignSystem.Campaign.Current.ObjectManager.GetObject<ItemObject>("clay");
             var settlement = data.Settlement;
             MissingGovernor = settlement.Town.Governor == null;
 

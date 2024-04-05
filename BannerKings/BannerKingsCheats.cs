@@ -1,60 +1,23 @@
 ﻿using BannerKings.Behaviours;
 using BannerKings.Managers.Helpers;
 using BannerKings.Managers.Innovations;
+using BannerKings.Managers.Court;
+using BannerKings.Behaviours.Mercenary;
 using System.Collections.Generic;
 using System.Linq;
 using TaleWorlds.CampaignSystem;
-using TaleWorlds.CampaignSystem.Actions;
-using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.Core;
 using TaleWorlds.Library;
+using TaleWorlds.Localization;
 using TaleWorlds.ObjectSystem;
+using TaleWorlds.CampaignSystem.Settlements;
+using TaleWorlds.CampaignSystem.CampaignBehaviors;
+using BannerKings.Managers.Titles;
 
 namespace BannerKings
 {
     public static class BannerKingsCheats
     {
-        [CommandLineFunctionality.CommandLineArgumentFunction("wipe_data", "bannerkings")]
-        public static string WipeSaveData(List<string> strings)
-        {
-            var parties = from party in MobileParty.All
-                where party.StringId.Contains("raisedmilitia_") ||
-                      party.StringId.Contains("slavecaravan_") || party.StringId.Contains("travellers_")
-                select party;
-            var list = new List<MobileParty>(parties);
-            var count = 0;
-            foreach (var party in list)
-            {
-                BannerKingsConfig.Instance.PopulationManager.RemoveCaravan(party);
-                DestroyPartyAction.Apply(null, party);
-                count++;
-            }
-
-            var civillians = MBObjectManager.Instance.GetObjectTypeList<CharacterObject>().ToList()
-                .FindAll(x => x.StringId.Contains("craftsman_") || x.StringId is "noble_empire" or "noble_vlandia" or "noble_sturgia" or "noble_aserai" or "noble_khuzait" or "noble_battania");
-
-            foreach (var party in MobileParty.All)
-            {
-                foreach (var civillian in civillians)
-                {
-                    if (party.MemberRoster != null && party.MemberRoster.Contains(civillian))
-                    {
-                        var memberCount = party.MemberRoster.GetTroopCount(civillian);
-                        party.MemberRoster.RemoveTroop(civillian, memberCount);
-                    }
-
-                    if (party.PrisonRoster != null && party.PrisonRoster.Contains(civillian))
-                    {
-                        var memberCount = party.PrisonRoster.GetTroopCount(civillian);
-                        party.PrisonRoster.RemoveTroop(civillian, memberCount);
-                    }
-                }
-            }
-
-            BannerKingsConfig.Instance.wipeData = true;
-            return $"{count} parties destroyed.";
-        }
-
         [CommandLineFunctionality.CommandLineArgumentFunction("give_title", "bannerkings")]
         public static string GiveTitle(List<string> strings)
         {
@@ -93,6 +56,38 @@ namespace BannerKings
         }
 
 
+        [CommandLineFunctionality.CommandLineArgumentFunction("start_rebellion", "bannerkings")]
+        public static string StartRebellionEvent(List<string> strings)
+        {
+            if (!CampaignCheats.CheckCheatUsage(ref CampaignCheats.ErrorType))
+            {
+                return CampaignCheats.ErrorType;
+            }
+
+            if (CampaignCheats.CheckParameters(strings, 0))
+            {
+                return "Format is \"bannerkings.start_rebellion [Settlement]";
+            }
+
+            string id = strings.First();
+            Settlement settlement = Settlement.All.FirstOrDefault(x => x.StringId == id || x.Name.ToString() == id);
+            if (settlement == null)
+            {
+                return "No settlement found with this id or name.";
+            }
+            else
+            {
+                if (settlement.Town == null)
+                {
+                    return "Not a castle or fief.";
+                }
+                else TaleWorlds.CampaignSystem.Campaign.Current.GetCampaignBehavior<RebellionsCampaignBehavior>().StartRebellionEvent(settlement);
+            }
+
+            return "Title successfully inherited.";
+        }
+
+
         [CommandLineFunctionality.CommandLineArgumentFunction("add_piety", "bannerkings")]
         public static string AddPiety(List<string> strings)
         {
@@ -113,10 +108,45 @@ namespace BannerKings
             return $"{piety} piety added to Main player.";
         }
 
+        [CommandLineFunctionality.CommandLineArgumentFunction("add_career_points", "bannerkings")]
+        public static string AddCareer(List<string> strings)
+        {
+
+            MercenaryCareer career = TaleWorlds.CampaignSystem.Campaign.Current.GetCampaignBehavior<BKMercenaryCareerBehavior>().GetCareer(Clan.PlayerClan);
+            if (career != null)
+            {
+                career.AddPoints();
+                return "Career points added!";
+            }
+
+            return "No mercenary career found.";
+        }
+
+        [CommandLineFunctionality.CommandLineArgumentFunction("finish_claims", "bannerkings")]
+        public static string FinishClaims(List<string> strings)
+        {
+            foreach (FeudalTitle title in BannerKingsConfig.Instance.TitleManager.AllTitles)
+            {
+                title.FinishClaims();
+            }
+
+            return "Claims finished.";
+        }
+
+        [CommandLineFunctionality.CommandLineArgumentFunction("give_player_full_peerage", "bannerkings")]
+        public static string GrantPeerage(List<string> strings)
+        {
+            var council = BannerKingsConfig.Instance.CourtManager.GetCouncil(Clan.PlayerClan);
+            council.SetPeerage(new Peerage(new TextObject("{=9OhMK2Wk}Full Peerage"), true,
+                                true, true, true, true, false));
+
+            return "Full Peerage set.";
+        }
+
         [CommandLineFunctionality.CommandLineArgumentFunction("spawn_bandit_hero", "bannerkings")]
         public static string SpawnBanditHero(List<string> strings)
         {
-            BKBanditBehavior behavior = Campaign.Current.GetCampaignBehavior<BKBanditBehavior>();
+            BKBanditBehavior behavior = TaleWorlds.CampaignSystem.Campaign.Current.GetCampaignBehavior<BKBanditBehavior>();
             Clan clan = Clan.BanditFactions.GetRandomElementInefficiently();
             behavior.CreateBanditHero(clan);
 
@@ -128,7 +158,7 @@ namespace BannerKings
         {
             if (strings == null || strings.Count == 0)
             {
-                return "Format is \"bannerkings.add_piety [Quantity\"]";
+                return "Format is \"bannerkings.advance_era [Culture_id\"]";
             }
 
             CultureObject culture = MBObjectManager.Instance.GetObject<CultureObject>(strings[0]);
@@ -145,31 +175,30 @@ namespace BannerKings
 
             data.SetEra(data.FindNextEra());
 
-            return "Knighthood requirements for player companions disabled.";
+            return "Era advanced if available.";
         }
 
-        [CommandLineFunctionality.CommandLineArgumentFunction("disable_knighthood", "bannerkings")]
-        public static string DisableKnighthood(List<string> strings)
+        [CommandLineFunctionality.CommandLineArgumentFunction("make_alliance", "bannerkings")]
+        public static string MakeAlliance(List<string> strings)
         {
-            BannerKingsConfig.Instance.TitleManager.Knighthood = false;
+            if (strings == null || strings.Count == 0)
+            {
+                return "Format is \"bannerkings.make_alliance [Kingdom_id\"]";
+            }
 
-            return "Knighthood requirements for player companions disabled.";
-        }
+            Kingdom kingdom = Kingdom.All.FirstOrDefault(x => x.StringId == strings[0]);
+            if (kingdom == null)
+            {
+                return "Invalid kingdom id";
+            }
 
-        [CommandLineFunctionality.CommandLineArgumentFunction("enable_knighthood", "bannerkings")]
-        public static string EnableKnighthood(List<string> strings)
-        {
-            BannerKingsConfig.Instance.TitleManager.Knighthood = true;
+            if (!Hero.MainHero.MapFaction.IsKingdomFaction)
+            {
+                return "Player not in a kingdom";
+            }
 
-            return "Knighthood requirements for player companions enabled.";
-        }
-
-        [CommandLineFunctionality.CommandLineArgumentFunction("reinit_titles", "bannerkings")]
-        public static string ReinitTitles(List<string> strings)
-        {
-            TitleGenerator.InitializeTitles();
-
-            return "Successfully reinitted titles.";
+            FactionManager.DeclareAlliance(Hero.MainHero.MapFaction, kingdom);
+            return "Alliance set.";
         }
     }
 }

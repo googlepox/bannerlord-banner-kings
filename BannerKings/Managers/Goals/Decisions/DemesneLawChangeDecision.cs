@@ -1,4 +1,5 @@
 using BannerKings.Managers.Kingdoms.Contract;
+using BannerKings.Managers.Titles.Governments;
 using BannerKings.Managers.Titles.Laws;
 using System;
 using System.Collections.Generic;
@@ -46,7 +47,7 @@ namespace BannerKings.Managers.Goals.Decisions
                 failedReasons.Add(new TextObject("{=qCfmQGiD}Contract changes can not be proposed during wars."));
             }
 
-            if (Clan.PlayerClan.Kingdom != null && Clan.PlayerClan.Kingdom.UnresolvedDecisions.Any(x => x is BKContractDecision || x is DemesneLawChangeDecision))
+            if (Clan.PlayerClan.Kingdom != null && Clan.PlayerClan.Kingdom.UnresolvedDecisions.Any(x => x is BKContractChangeDecision || x is DemesneLawChangeDecision))
             {
                 failedReasons.Add(new TextObject("{=nsQZHLQf}A contract-altering proposal is already being voted on."));
             }
@@ -97,6 +98,7 @@ namespace BannerKings.Managers.Goals.Decisions
                 new TextObject("{=Uq1b1dmT}Propose a change to your faction's demesne laws. These laws describe a multitude of aspects of your faction, such as slavery, duties of lower classes and tenure of estates. Laws that have been enacted for less than 1 year may not be changed.").ToString(),
                 elements, 
                 true, 
+                1,
                 1, 
                 GameTexts.FindText("str_done").ToString(),
                 GameTexts.FindText("str_cancel").ToString(),
@@ -146,6 +148,7 @@ namespace BannerKings.Managers.Goals.Decisions
                     description.ToString(),
                     Options, 
                     true, 
+                    1,
                     1, 
                     GameTexts.FindText("str_done").ToString(), 
                     string.Empty,

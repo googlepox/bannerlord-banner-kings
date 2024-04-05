@@ -2,7 +2,6 @@ using System.Collections.Generic;
 using System.Linq;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Actions;
-using TaleWorlds.CampaignSystem.CharacterDevelopment;
 using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.Core;
 using TaleWorlds.Library;
@@ -30,75 +29,74 @@ namespace BannerKings.Managers.Goals.Decisions
             var cap = BannerKingsConfig.Instance.InfluenceModel.CalculateInfluenceCap(GetFulfiller().Clan).ResultNumber;
             companionTypes = new List<CompanionType>
             {
-                new CompanionType(new TextObject("{=!}Commander"),
+                new CompanionType(new TextObject("{=kyB8tkgY}Commander"),
                 new TextObject("{=61scYHtR}A guest adept as a commander. An expensive service given the constant need for quality leadership. A commander will likely have at least 60 proficiency in leadership."),
                 MathF.Max(cap * 0.14f, 60f),
-                new List<TraitObject>()
+                new List<SkillObject>()
                 {
-                    DefaultTraits.Commander,
-                    DefaultTraits.SergeantCommandSkills
+                    DefaultSkills.Leadership,
+                    DefaultSkills.Tactics,
                 }),
 
                 new CompanionType(new TextObject("{=Q8Zv4D7p}Soldier"),
                 new TextObject("{=h6QeRUFk}A guest adept as a soldier, regardless of their fighting style. A solder will likely have at least 60 proficiency in several combat skills."),
                 MathF.Max(cap * 0.06f, 20f),
-                new List<TraitObject>()
+                new List<SkillObject>()
                 {
-                    DefaultTraits.ArcherFIghtingSkills,
-                    DefaultTraits.CavalryFightingSkills,
-                    DefaultTraits.HopliteFightingSkills,
-                    DefaultTraits.HorseArcherFightingSkills,
-                    DefaultTraits.HuscarlFightingSkills,
-                    DefaultTraits.KnightFightingSkills,
-                    DefaultTraits.PeltastFightingSkills
+                    DefaultSkills.OneHanded,
+                    DefaultSkills.TwoHanded,
+                    DefaultSkills.Polearm,
+                    DefaultSkills.Bow,
+                    DefaultSkills.Crossbow,
+                    DefaultSkills.Throwing
                 }),
 
                 new CompanionType(new TextObject("{=XrR7XZWp}Healer"),
                 new TextObject("{=4WhG1re9}A guest adept in the healing arts. Due to their high demand, their services are expensive. A healder will likely have at least 60 proficiency in medical skill."),
                 MathF.Max(cap * 0.09f, 35f),
-                new List<TraitObject>()
+                new List<SkillObject>()
                 {
-                    DefaultTraits.Surgery
+                    DefaultSkills.Medicine
                 }),
 
                 new CompanionType(new TextObject("{=t0UENgOQ}Engineer"),
                 new TextObject("{=jUWDvhFm}A guest adept in the engineering fields. An engineer will likely have at least 60 proficiency in siegecraft."),
                 MathF.Max(cap * 0.1f, 40f),
-                new List<TraitObject>()
+                new List<SkillObject>()
                 {
-                    DefaultTraits.Siegecraft
+                    DefaultSkills.Engineering
                 }),
 
                 new CompanionType(new TextObject("{=vGEs0w41}Rogue"),
                 new TextObject("{=mu1hg1y0}A guest adept in roguery. A rogue will likely have at least 60 proficiency in roguery."),
                 MathF.Max(cap * 0.07f, 25f),
-                new List<TraitObject>()
+                new List<SkillObject>()
                 {
-                    DefaultTraits.RogueSkills
+                    DefaultSkills.Roguery
                 }),
 
                 new CompanionType(new TextObject("{=cQwb9BX0}Scout"),
                 new TextObject("{=dBYCCT4W}A guest adept of scouting regardless of the terrain. A necessity for any warband of significant size. A scout will likely have at least 60 proficiency in scouting."),
                 MathF.Max(cap * 0.07f, 25f),
-                new List<TraitObject>()
+                new List<SkillObject>()
                 {
-                    DefaultTraits.ScoutSkills
+                    DefaultSkills.Scouting
                 }),
 
                 new CompanionType(new TextObject("{=R5VvmxJ7}Trader"),
                 new TextObject("{=5dcdprut}A guest adept in the art of trading. Exceptional caravaneers when paired with scouting abilities. A trader will likely have at least 60 proficiency in trading."),
                 MathF.Max(cap * 0.08f, 30f),
-                new List<TraitObject>()
+                new List<SkillObject>()
                 {
-                    DefaultTraits.Trader
+                    DefaultSkills.Trade
                 }),
 
-                new CompanionType(new TextObject("{=!}Steward"),
+                new CompanionType(new TextObject("Steward"),
                 new TextObject("{=gfmewont}A guest adept in stewardship. Stewards make for good governors to handle your demesne, as well as capable quartermasters. A rare gift that comes for a premium price. A steward will likely have at least 60 proficiency in stewardship."),
                 MathF.Max(cap * 0.11f, 45f),
-                new List<TraitObject>()
+                new List<SkillObject>()
                 {
-                    DefaultTraits.Manager
+                    DefaultSkills.Steward
                 })
             };
         }
@@ -129,7 +127,7 @@ namespace BannerKings.Managers.Goals.Decisions
             var influence = GetFulfiller().Clan?.Influence ?? 0f;
 
             var cultureOptions = new List<InquiryElement>();
-            foreach (var culture in Campaign.Current.ObjectManager.GetObjectTypeList<CultureObject>())
+            foreach (var culture in TaleWorlds.CampaignSystem.Campaign.Current.ObjectManager.GetObjectTypeList<CultureObject>())
             {
                 if (culture.NotableAndWandererTemplates != null && culture.NotableAndWandererTemplates.Count > 0 ||
                     culture.CanHaveSettlement && !culture.IsBandit && culture.IsMainCulture)
@@ -147,6 +145,7 @@ namespace BannerKings.Managers.Goals.Decisions
                 new TextObject("{=zfQkfCPp}Determine the cultural origin of the guests you would entertain. Beware foreigners will often be more expensive.").ToString(),
                 cultureOptions,
                 true,
+                1,
                 1,
                 GameTexts.FindText("str_done").ToString(),
                 GameTexts.FindText("str_cancel").ToString(),
@@ -187,6 +186,7 @@ namespace BannerKings.Managers.Goals.Decisions
                        companionOptions,
                        true,
                        1,
+                       1,
                        GameTexts.FindText("str_done").ToString(),
                        GameTexts.FindText("str_cancel").ToString(),
                        delegate (List<InquiryElement> selectedOptions)
@@ -206,14 +206,8 @@ namespace BannerKings.Managers.Goals.Decisions
             var possibleTemplates = new List<CharacterObject>();
             foreach (var template in selectedCulture.NotableAndWandererTemplates.Where(t => t.Occupation == Occupation.Wanderer))
             {
-                foreach (var trait in type.Trait)
-                {
-                    if (template.GetTraitLevel(trait) > 4)
-                    {
-                        possibleTemplates.Add(template);
-                        break;
-                    }
-                }
+                foreach (var skill in type.Skills)
+                    if (template.GetSkillValue(skill) >= 50) possibleTemplates.Add(template);
             }
 
             return possibleTemplates;
@@ -229,7 +223,7 @@ namespace BannerKings.Managers.Goals.Decisions
                 bornSettlement, 
                 null,
                 null, 
-                Campaign.Current.Models.AgeModel.HeroComesOfAge + MBRandom.RandomInt(32));
+                TaleWorlds.CampaignSystem.Campaign.Current.Models.AgeModel.HeroComesOfAge + MBRandom.RandomInt(32));
 
             var council = BannerKingsConfig.Instance.CourtManager.GetCouncil(hero.Clan);
             TeleportHeroAction.ApplyImmediateTeleportToSettlement(companion, council.Location.Settlement);
@@ -251,18 +245,18 @@ namespace BannerKings.Managers.Goals.Decisions
 
         private class CompanionType
         {
-            public CompanionType(TextObject name, TextObject description, float influenceCost, List<TraitObject> trait)
+            public CompanionType(TextObject name, TextObject description, float influenceCost, List<SkillObject> skills)
             {
                 Name = name;
                 Description = description;
                 InfluenceCost = influenceCost;
-                Trait = trait;
+                Skills = skills;
             }
 
             public TextObject Name { get; set; } 
             public TextObject Description { get; set; } 
             public float InfluenceCost { get; set; }
-            public List<TraitObject> Trait { get; set; }
+            public List<SkillObject> Skills { get; set; }
         }
     }
 }

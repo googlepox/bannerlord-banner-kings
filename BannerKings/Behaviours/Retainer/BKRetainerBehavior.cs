@@ -130,8 +130,8 @@ namespace BannerKings.Behaviours.Retainer
                         if (contractor.IsActive)
                         {
                             PartyBase.MainParty.MobileParty.Position2D = contractor.Position2D;
-                            if (Campaign.Current.CurrentMenuContext == null || 
-                                Campaign.Current.CurrentMenuContext.StringId != "bk_retinue_wait")
+                            if (TaleWorlds.CampaignSystem.Campaign.Current.CurrentMenuContext == null || 
+                                TaleWorlds.CampaignSystem.Campaign.Current.CurrentMenuContext.StringId != "bk_retinue_wait")
                             {
                                 GameMenu.ActivateGameMenu("bk_retinue_wait");
                             }
@@ -153,9 +153,11 @@ namespace BannerKings.Behaviours.Retainer
                 if (contractor != null && contractor.LeaderHero == contract.Contractor)
                 {
                     MobileParty.MainParty.IsActive = false;
-                    PartyBase.MainParty.UpdateVisibilityAndInspected(0f, true);
+                    PartyBase.MainParty.UpdateVisibilityAndInspected(0f);
+                    PartyBase.MainParty.MobileParty.IsVisible = false;
                     contractor.Party.SetAsCameraFollowParty();
-                    contractor.Party.UpdateVisibilityAndInspected(0f, false);
+                    contractor.Party.UpdateVisibilityAndInspected(0f);
+                    contractor.IsVisible = true;
                 }
             }
         }

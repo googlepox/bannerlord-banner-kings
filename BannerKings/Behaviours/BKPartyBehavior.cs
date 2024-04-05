@@ -2,11 +2,14 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using BannerKings.Components;
+using BannerKings.Managers.Items;
 using BannerKings.Managers.Populations;
 using BannerKings.Settings;
+using Helpers;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Actions;
 using TaleWorlds.CampaignSystem.CharacterDevelopment;
+using TaleWorlds.CampaignSystem.ComponentInterfaces;
 using TaleWorlds.CampaignSystem.Encounters;
 using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.Roster;
@@ -22,15 +25,70 @@ namespace BannerKings.Behaviours
 {
     public class BKPartyBehavior : CampaignBehaviorBase
     {
+        private ItemObject chicken;
+        private ItemObject goose;
+
+        private ItemObject Chicken
+        {
+            get
+            {
+                if (chicken == null) chicken = TaleWorlds.CampaignSystem.Campaign.Current.ObjectManager.GetObject<ItemObject>("chicken");
+                return chicken;
+            }
+        }
+
+        private ItemObject Goose
+        {
+            get
+            {
+                if (goose == null) goose = TaleWorlds.CampaignSystem.Campaign.Current.ObjectManager.GetObject<ItemObject>("goose");
+                return goose;
+            }
+        }
+
+        private Dictionary<Settlement, List<Settlement>> travelCache;
+
         public override void RegisterEvents()
         {
             CampaignEvents.HourlyTickPartyEvent.AddNonSerializedListener(this, HourlyTickParty);
-            CampaignEvents.MobilePartyDestroyed.AddNonSerializedListener(this, OnMobilePartyDestroyed);
             CampaignEvents.SettlementEntered.AddNonSerializedListener(this, OnSettlementEntered);
             CampaignEvents.DailyTickSettlementEvent.AddNonSerializedListener(this, DailySettlementTick);
             CampaignEvents.OnSessionLaunchedEvent.AddNonSerializedListener(this, OnSessionLaunched);
             CampaignEvents.OnSiegeEventStartedEvent.AddNonSerializedListener(this, OnSiegeStarted);
             CampaignEvents.OnGameLoadedEvent.AddNonSerializedListener(this, OnGameLoaded);
+            CampaignEvents.OnSettlementLeftEvent.AddNonSerializedListener(this, OnSettlementLeft);
+            CampaignEvents.DailyTickPartyEvent.AddNonSerializedListener(this, OnDailyTick);
+        }
+
+        private void OnSettlementLeft(MobileParty mobileParty, Settlement settlement)
+        {
+            if (!mobileParty.IsCaravan) return;
+
+            if (settlement.Town == null) return;
+
+            float space = mobileParty.InventoryCapacity * 0.8f - mobileParty.TotalWeightCarried;
+            if (space > 5f)
+            {
+                foreach (var element in settlement.Party.ItemRoster)
+                {
+                    float price = settlement.Town.GetItemPrice(element.EquipmentElement, mobileParty);
+                    if (price < element.EquipmentElement.ItemValue * 0.33f)
+                    {
+                        int count = (int)MathF.Min(space / element.EquipmentElement.Item.Weight, (float)element.Amount);
+                        if (count > 0)
+                        {
+                            int cost = (int)(count * price);
+                            if (mobileParty.PartyTradeGold >= cost)
+                            {
+                                mobileParty.ItemRoster.AddToCounts(element.EquipmentElement, count);
+                                mobileParty.PartyTradeGold -= cost;
+                                settlement.Town.Owner.ItemRoster.AddToCounts(element.EquipmentElement, -count);
+                                settlement.Town.ChangeGold(cost);
+                            }
+                        }
+                    }
+                }
+            }
         }
 
         private void OnGameLoaded(CampaignGameStarter starter)
@@ -66,6 +124,23 @@ namespace BannerKings.Behaviours
             }
         }
 
+        private void OnDailyTick(MobileParty party)
+        {
+            if (!party.IsActive) return;
+
+            float flock = party.ItemRoster.GetItemNumber(Chicken) +
+                party.ItemRoster.GetItemNumber(Goose);
+
+            if (flock > 0)
+            {
+                int eggs = 0;
+                for (int i = 0; i < flock; i++)
+                    if (MBRandom.RandomFloat < 0.05f) eggs++;             
+
+                if (eggs > 0) party.ItemRoster.AddToCounts(BKItems.Instance.Egg, eggs);
+            }
+        }
+
         private void OnSiegeStarted(SiegeEvent siegeEvent) 
         {
             if (siegeEvent.BesiegedSettlement == null)
@@ -76,7 +151,7 @@ namespace BannerKings.Behaviours
             var toRemove = new List<MobileParty>();
             foreach (var party in siegeEvent.BesiegedSettlement.Parties)
             {
-                if (BannerKingsConfig.Instance.PopulationManager.IsPopulationParty(party))
+                if (party.PartyComponent != null && party.PartyComponent is PopulationPartyComponent)
                 {
                     toRemove.Add(party);
                 }
@@ -85,7 +160,6 @@ namespace BannerKings.Behaviours
             foreach (var party in toRemove)
             {
                 DestroyPartyAction.Apply(null, party);
-                BannerKingsConfig.Instance.PopulationManager.RemoveCaravan(party);
             }
         }
 
@@ -96,12 +170,97 @@ namespace BannerKings.Behaviours
                 KillCharacterAction.ApplyByMurder(party.LeaderHero);
             }
 
-            if (BannerKingsConfig.Instance.PopulationManager == null)
+            VillagersCastleTick(party);
+            AddCustomPartyBehaviors(party);
+            GoBuyFood(party);
+        }
+
+        private void GoBuyFood(MobileParty lordParty)
+        {
+            if (!lordParty.IsLordParty || lordParty == MobileParty.MainParty) return;
+
+            if (lordParty.Army != null || lordParty.MapEvent != null) return;
+
+            if (lordParty.Ai.DefaultBehavior != AiBehavior.PatrolAroundPoint) return;
+
+            if (TaleWorlds.CampaignSystem.Campaign.Current.Models.MobilePartyFoodConsumptionModel.DoesPartyConsumeFood(lordParty) &&
+                lordParty.TotalFoodAtInventory < (int)(MathF.Abs(lordParty.FoodChange * 5f)))
+            {
+                Settlement settlement = SettlementHelper.FindNearestSettlement((Settlement settlement) =>
+                {
+                    return (settlement.Town != null || settlement.IsVillage) && settlement.MapFaction != null &&
+                    !settlement.MapFaction.IsAtWarWith(lordParty.MapFaction) && settlement.ItemRoster.TotalFood > 0;
+                },
+                lordParty);
+                if (settlement != null) lordParty.Ai.SetMoveGoToSettlement(settlement);
+            }
+        }
+
+        private void TryBuyingFood(MobileParty mobileParty, Settlement settlement)
+        {
+            if (TaleWorlds.CampaignSystem.Campaign.Current.GameStarted && mobileParty.LeaderHero != null && settlement.IsCastle && 
+                TaleWorlds.CampaignSystem.Campaign.Current.Models.MobilePartyFoodConsumptionModel.DoesPartyConsumeFood(mobileParty) && 
+                (mobileParty.Army == null || mobileParty.Army.LeaderParty == mobileParty) && 
+                (settlement.IsVillage || (mobileParty.MapFaction != null && !mobileParty.MapFaction.IsAtWarWith(settlement.MapFaction))) && 
+                settlement.ItemRoster.TotalFood > 0)
+            {
+                PartyFoodBuyingModel partyFoodBuyingModel = TaleWorlds.CampaignSystem.Campaign.Current.Models.PartyFoodBuyingModel;
+                float minimumDaysToLast = settlement.IsVillage ? partyFoodBuyingModel.MinimumDaysFoodToLastWhileBuyingFoodFromVillage : partyFoodBuyingModel.MinimumDaysFoodToLastWhileBuyingFoodFromTown;
+                if (mobileParty.Army == null)
+                {
+                    this.BuyFoodInternal(mobileParty, settlement, this.CalculateFoodCountToBuy(mobileParty, minimumDaysToLast));
+                    return;
+                }
+            }
+        }
+
+        private void BuyFoodInternal(MobileParty mobileParty, Settlement settlement, int numberOfFoodItemsNeededToBuy)
+        {
+            if (!mobileParty.IsMainParty)
+            {
+                for (int i = 0; i < numberOfFoodItemsNeededToBuy; i++)
+                {
+                    ItemRosterElement subject;
+                    float num;
+                    TaleWorlds.CampaignSystem.Campaign.Current.Models.PartyFoodBuyingModel.FindItemToBuy(mobileParty, settlement, out subject, out num);
+                    if (subject.EquipmentElement.Item == null)
+                    {
+                        break;
+                    }
+                    if (num <= (float)mobileParty.LeaderHero.Gold)
+                    {
+                        SellItemsAction.Apply(settlement.Party, mobileParty.Party, subject, 1, null);
+                    }
+                    if (subject.EquipmentElement.Item.HasHorseComponent && subject.EquipmentElement.Item.HorseComponent.IsLiveStock)
+                    {
+                        i += subject.EquipmentElement.Item.HorseComponent.MeatCount - 1;
+                    }
+                }
+            }
+        }
+
+        private int CalculateFoodCountToBuy(MobileParty mobileParty, float minimumDaysToLast)
+        {
+            float num = (float)mobileParty.TotalFoodAtInventory / -mobileParty.FoodChange;
+            float num2 = minimumDaysToLast - num;
+            if (num2 > 0f)
+            {
+                return (int)(-mobileParty.FoodChange * num2);
+            }
+            return 0;
+        }
+
+        private void VillagersCastleTick(MobileParty villagerParty)
+        {
+            if (!villagerParty.IsVillager || villagerParty.MapEvent != null)
             {
                 return;
             }
-
-            AddCustomPartyBehaviors(party);
+           
+            if (villagerParty.CurrentSettlement != null && villagerParty.CurrentSettlement.IsCastle)
+            {
+                villagerParty.Ai.SetMoveGoToSettlement(villagerParty.HomeSettlement);
+            }
         }
 
         private void AddCustomPartyBehaviors(MobileParty party)
@@ -116,7 +275,6 @@ namespace BannerKings.Behaviours
             if (bkComponent.HomeSettlement == null)
             {
                 DestroyPartyAction.Apply(null, party);
-                BannerKingsConfig.Instance.PopulationManager.RemoveCaravan(party);
                 return;
             }
 
@@ -148,42 +306,66 @@ namespace BannerKings.Behaviours
 
         private void DecideSendTraders(Settlement settlement)
         {
-            var random = MBRandom.RandomInt(1, 100);
-            if (random > 40)
-            {
-                return;
-            }
+            CharacterObject civilian = settlement.Culture.Villager;
+            if (civilian == null) return;
 
-            var target = GetTownToTravel(settlement);
-            if (target == null)
+            var target = GetTownsToTravel(settlement);
+            if (target.IsEmpty()) return;
+            
+            foreach (var town in target)
             {
-                return;
-            }
+                if (settlement.MapFaction.IsAtWarWith(town.MapFaction)) continue;
 
-            if (BannerKingsConfig.Instance.PopulationManager.IsSettlementPopulated(target) &&
-               BannerKingsConfig.Instance.PopulationManager.IsSettlementPopulated(settlement))
-            {
-                CharacterObject civilian = MBObjectManager.Instance.GetObjectTypeList<CharacterObject>()
-                            .FirstOrDefault(x => x.StringId == "villager_" + settlement.Culture.StringId);
+                var random = MBRandom.RandomInt(1, 100);
+                if (random > 20) continue;
+     
                 int count = MBRandom.RandomInt(12, 25);
                 var name = "{=ds9BcMxr}Traders from {ORIGIN}";
 
                 if (civilian != null)
                 {
-                    MobileParty tradersParty = PopulationPartyComponent.CreateTravellerParty("travellers_", settlement, target,
-                        name, count, PopType.Serfs, civilian, true);
+                    MobileParty tradersParty = PopulationPartyComponent.CreateTravellerParty("travellers_", 
+                        settlement,
+                        town,
+                        name, 
+                        count,
+                        PopType.Tenants, 
+                        civilian, 
+                        true);
 
-                    int budget = 500 + (int)(settlement.Prosperity / 1000f);
-
+                    int budget = 1000 + (int)(settlement.Town.Prosperity / 10f);
                     var localData = settlement.Town.MarketData;
-                    var targetData = target.Town.MarketData;
+                    var targetData = town.Town.MarketData;
                     var townStock = settlement.Town.Owner.ItemRoster;
+                    float traderCapacity = tradersParty.InventoryCapacity * 0.95f;
+
                     foreach (var element in townStock)
                     {
-                        if (budget <= 5)
+                        if (budget <= 5) break;
+
+                        if (tradersParty.TotalWeightCarried >= traderCapacity) break;
+
+                        EquipmentElement equipment = element.EquipmentElement;
+                        ItemCategory category = equipment.Item.ItemCategory;
+                        if (settlement.Town.GetItemCategoryPriceIndex(category) < 0.15f)
                         {
-                            break;
+                            var price = localData.GetPrice(equipment, null, true);
+                            int totalCount = MBMath.ClampInt((int)(budget / (float)price), 0, element.Amount);
+                            if (totalCount > 1f)
+                            {
+                                townStock.AddToCounts(equipment, -totalCount);
+                                town.Town.ChangeGold((int)(price * (float)totalCount));
+                                tradersParty.ItemRoster.AddToCounts(new EquipmentElement(equipment.Item, equipment.ItemModifier),
+                                    totalCount);
+                            }
                         }
+                    }
+
+                    foreach (var element in townStock)
+                    {
+                        if (budget <= 5) break;
+
+                        if (tradersParty.TotalWeightCarried >= traderCapacity) break;
 
                         EquipmentElement equipment = element.EquipmentElement;
                         ItemCategory category = equipment.Item.ItemCategory;
@@ -195,14 +377,16 @@ namespace BannerKings.Behaviours
                             if (totalCount > 1f)
                             {
                                 townStock.AddToCounts(equipment, -totalCount);
-                                target.Town.ChangeGold((int)(price * (float)totalCount));
-                                tradersParty.ItemRoster.AddToCounts(new EquipmentElement(equipment.Item, equipment.ItemModifier), 
+                                town.Town.ChangeGold((int)(price * (float)totalCount));
+                                tradersParty.ItemRoster.AddToCounts(new EquipmentElement(equipment.Item, equipment.ItemModifier),
                                     totalCount);
                             }
                         }
                     }
+
+                    break;
                 }
-            }  
+            }
         }
 
         private void DecideSendTravellers(Settlement settlement)
@@ -213,7 +397,7 @@ namespace BannerKings.Behaviours
                 return;
             }
 
-            var target = GetTownToTravel(settlement);
+            var target = GetTownsToTravel(settlement).FirstOrDefault();
             if (target == null)
             {
                 return;
@@ -228,12 +412,13 @@ namespace BannerKings.Behaviours
 
         private void OnSettlementEntered(MobileParty party, Settlement target, Hero hero)
         {
-            if (party == null)
+            if (party == null || party == MobileParty.MainParty)
             {
                 return;
             }
 
-           
+            if (party.IsLordParty) TryBuyingFood(party, target);
+
             AddRealisticIncome(party, target);
             var data = BannerKingsConfig.Instance.PopulationManager.GetPopData(target);
             if (data == null)
@@ -283,7 +468,6 @@ namespace BannerKings.Behaviours
                 }
 
                 DestroyPartyAction.Apply(null, party);
-                BannerKingsConfig.Instance.PopulationManager.RemoveCaravan(party);
             }
         }
 
@@ -349,7 +533,6 @@ namespace BannerKings.Behaviours
                 }
 
                 DestroyPartyAction.Apply(null, party);
-                BannerKingsConfig.Instance.PopulationManager.RemoveCaravan(party);
             }
         }
 
@@ -387,15 +570,6 @@ namespace BannerKings.Behaviours
             }
         }
 
-        private void OnMobilePartyDestroyed(MobileParty mobileParty, PartyBase destroyerParty)
-        {
-            if (mobileParty != null && BannerKingsConfig.Instance.PopulationManager != null &&
-                BannerKingsConfig.Instance.PopulationManager.IsPopulationParty(mobileParty))
-            {
-                BannerKingsConfig.Instance.PopulationManager.RemoveCaravan(mobileParty);
-            }
-        }
-
         private bool DecideSendSlaveCaravan(Settlement settlement)
         {
             if (!settlement.IsTown || settlement.Town == null)
@@ -408,17 +582,33 @@ namespace BannerKings.Behaviours
                 BannerKingsConfig.Instance.PopulationManager.PopSurplusExists(settlement, PopType.Slaves);
         }
 
-        private Settlement GetTownToTravel(Settlement origin)
+        private List<Settlement> GetTownsToTravel(Settlement origin)
         {
-            var kingdom = origin.OwnerClan?.Kingdom;
-            if (kingdom?.Settlements == null || kingdom.Settlements.Count <= 1)
+            List<Settlement> list;  
+            if (travelCache == null)
             {
-                return null;
+                travelCache = new Dictionary<Settlement, List<Settlement>>(Town.AllFiefs.Count());
             }
 
-            var list = (from settlement in kingdom.Settlements where settlement.IsTown && settlement != origin select new ValueTuple<Settlement, float>(settlement, 1f)).ToList();
+            if (!travelCache.TryGetValue(origin, out list)) 
+            {
+                list = new List<Settlement>();
+                foreach (var fortification in Town.AllFiefs)
+                {
+                    if (fortification.Settlement == origin) continue;
 
-            return MBRandom.ChooseWeighted(list);
+                    if (!origin.MapFaction.IsAtWarWith(fortification.MapFaction))
+                    {
+                        if (TaleWorlds.CampaignSystem.Campaign.Current.Models.MapDistanceModel.GetDistance(fortification.Settlement, origin) < 100f)
+                            list.Add(fortification.Settlement);
+                    }
+                }
+
+                travelCache[origin] = list;
+            }
+            
+
+            return list;
         }
 
         private void SendTravellerParty(Settlement origin, Settlement target)
@@ -561,25 +751,75 @@ namespace BannerKings.Behaviours
             starter.AddDialogLine("raised_militia_order_response", "raised_militia_order", "close_window",
                 "{=Oo88Sazm}Aye!",
                 null, delegate { PlayerEncounter.LeaveEncounter = true; });
+
+            starter.AddDialogLine("raised_retinue_party_start", "start", "raised_retinue_greeting",
+               "{=SRg8cwUN}{?PLAYER.GENDER}M'lady!{?}M'lord!{\\?} We are ready to serve you.",
+               IsPlayerEstateRetinue, null);
+
+            starter.AddPlayerLine("retinue_party_follow", "raised_retinue_greeting", "retinue_order",
+               new TextObject("{=Hvi96rXx}Follow my company.").ToString(),
+               () => true,
+               () =>
+               {
+                   var party = PlayerEncounter.EncounteredParty;
+                   var component = (EstateComponent)party.MobileParty.PartyComponent;
+                   component.Behavior = AiBehavior.EscortParty;
+                   component.Escort = MobileParty.MainParty;
+               });
+
+            starter.AddPlayerLine("retinue_party_retreat", "raised_retinue_greeting", "retinue_order",
+                new TextObject("{=xPvsVw4b}You may go home.").ToString(),
+                () => true,
+                () =>
+                {
+                    var party = PlayerEncounter.EncounteredParty;
+                    var component = (EstateComponent)party.MobileParty.PartyComponent;
+                    component.Behavior = AiBehavior.GoToSettlement;
+                });
+
+            starter.AddDialogLine("retinue_order_response", "retinue_order", "close_window",
+                "{=Oo88Sazm}Aye!",
+                null, delegate { PlayerEncounter.LeaveEncounter = true; });
+
+            starter.AddDialogLine("retinue_continue", "retinue_continue", "raised_retinue_greeting",
+                "{=sFJ0pObc}Anything else?",
+                null,
+                null);
+
+            starter.AddPlayerLine("retinue_party_retreat", "raised_retinue_greeting", "retinue_continue",
+                new TextObject("{=UKybEESB}Let me check your ranks.").ToString(),
+                () => true,
+                () =>
+                {
+                    PartyScreenManager.OpenScreenAsManageTroopsAndPrisoners(PlayerEncounter.EncounteredParty.MobileParty);
+                });
+
+            starter.AddPlayerLine("retinue_party_leave", "raised_retinue_greeting", "close_window",
+                "{=G4ALCxaA}Never mind.",
+                () => true,
+                delegate { PlayerEncounter.LeaveEncounter = true; });
         }
 
         private bool IsTravellerParty(PartyBase party)
         {
             var value = false;
-            if (party is not {MobileParty: { }})
+            if (party is not { MobileParty: { } })
             {
                 return false;
             }
 
-            if (BannerKingsConfig.Instance.PopulationManager.IsPopulationParty(party.MobileParty))
+            try
             {
-                value = true;
-            }
+                if (party.MobileParty.PartyComponent != null && party.MobileParty.PartyComponent is PopulationPartyComponent)
+                {
+                    value = true;
+                }
 
-            if (party.MobileParty.PartyComponent is not PopulationPartyComponent)
-            {
-                value = false;
-            }
+                if (party.MobileParty.PartyComponent is not PopulationPartyComponent)
+                {
+                    value = false;
+                }
+            } catch (Exception ex) { }
 
             return value;
         }
@@ -643,18 +883,18 @@ namespace BannerKings.Behaviours
             return value;
         }
 
-        private bool raised_militia_order_on_condition()
+        private bool IsPlayerEstateRetinue()
         {
             var value = false;
             var party = PlayerEncounter.EncounteredParty;
             if (!IsTravellerParty(party))
             {
-                return false;
+                return value;
             }
 
-            if (party.MobileParty.PartyComponent is MilitiaComponent && party.Owner == Hero.MainHero)
+            if (party.MobileParty.PartyComponent is EstateComponent)
             {
-                value = true;
+                value = (party.MobileParty.PartyComponent as EstateComponent).Estate.Owner == Hero.MainHero;
             }
 
             return value;

@@ -1,10 +1,13 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using BannerKings.Extensions;
 using BannerKings.Managers;
 using BannerKings.Managers.Institutions.Religions;
 using BannerKings.Managers.Institutions.Religions.Doctrines;
 using BannerKings.Managers.Institutions.Religions.Faiths.Rites;
+using BannerKings.Managers.Populations;
 using BannerKings.Managers.Skills;
 using BannerKings.Managers.Titles;
 using BannerKings.Managers.Traits;
@@ -12,6 +15,7 @@ using HarmonyLib;
 using SandBox.CampaignBehaviors;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Actions;
+using TaleWorlds.CampaignSystem.CampaignBehaviors;
 using TaleWorlds.CampaignSystem.CharacterDevelopment;
 using TaleWorlds.CampaignSystem.Conversation;
 using TaleWorlds.CampaignSystem.Election;
@@ -27,7 +31,7 @@ using Color = TaleWorlds.Library.Color;
 
 namespace BannerKings.Behaviours
 {
-    public class BKReligionsBehavior : CampaignBehaviorBase
+    public class BKReligionsBehavior : BannerKingsBehavior
     {
         private static ReligionsManager ReligionsManager => BannerKingsConfig.Instance.ReligionsManager;
         private Divinity selectedDivinity;
@@ -46,11 +50,56 @@ namespace BannerKings.Behaviours
             CampaignEvents.SettlementEntered.AddNonSerializedListener(this, OnSettlementEntered);
             CampaignEvents.HeroKilledEvent.AddNonSerializedListener(this, OnHeroKilled);
             CampaignEvents.OnSettlementOwnerChangedEvent.AddNonSerializedListener(this, OnOwnerChanged);
+            CampaignEvents.OnSiegeAftermathAppliedEvent.AddNonSerializedListener(this, OnSiegeAftermath);
+            CampaignEvents.MapEventEnded.AddNonSerializedListener(this, EventEnded);
             //CampaignEvents.DailyTickSettlementEvent.AddNonSerializedListener(this, new Action<Settlement>(DailySettlementTick));
         }
 
         public override void SyncData(IDataStore dataStore)
         {
+        }
+
+        public ValueTuple<bool, TextObject> IsInstallingPreacherPossible(Hero hero, Settlement settlement)
+        {
+            ValueTuple<bool, TextObject> result = new ValueTuple<bool, TextObject>(true, TextObject.Empty);
+            PopulationData data = BannerKingsConfig.Instance.PopulationManager.GetPopData(settlement);
+
+            int piety = MBRandom.RoundRandomized(BannerKingsConfig.Instance.ReligionModel.GetAppointCost(hero, data.ReligionData).ResultNumber);
+            int cost = MBRandom.RoundRandomized(BannerKingsConfig.Instance.ReligionModel.GetAppointInfluence(hero, data.ReligionData).ResultNumber);
+
+            if (BannerKingsConfig.Instance.ReligionsManager.GetPiety(hero) < piety)
+            {
+                return new ValueTuple<bool, TextObject>(false, new TextObject("Not enough piety."));
+            }
+
+            if (hero.Clan.Influence < cost)
+            {
+                return new ValueTuple<bool, TextObject>(false, new TextObject("Not enough influence."));
+            }
+
+            return result;
+        }
+
+        public void InstallPreacher(PopulationData data, Hero hero, Religion heroReligion)
+        {
+            int piety = MBRandom.RoundRandomized(BannerKingsConfig.Instance.ReligionModel.GetAppointCost(hero, data.ReligionData).ResultNumber);
+            int cost = MBRandom.RoundRandomized(BannerKingsConfig.Instance.ReligionModel.GetAppointInfluence(hero, data.ReligionData).ResultNumber);
+            Clergyman clergy = heroReligion.GenerateClergyman(data.Settlement);
+            if (clergy != null)
+            {
+                ChangeClanInfluenceAction.Apply(hero.Clan, -cost);
+                BannerKingsConfig.Instance.ReligionsManager.AddPiety(hero, -piety, true);
+                hero.AddSkillXp(BKSkills.Instance.Theology, 2000f);
+                if (hero == Hero.MainHero)
+                {
+                    InformationManager.DisplayMessage(new InformationMessage(
+                                        new TextObject("{=cM7fEchf}{HERO} was installed as a preacher at {FIEF}")
+                                        .SetTextVariable("HERO", clergy.Hero.Name)
+                                        .SetTextVariable("FIEF", data.Settlement.Name)
+                                        .ToString(),
+                                        Color.FromUint(Utils.TextHelper.COLOR_LIGHT_BLUE)));
+                }
+            }
         }
 
         private void OnSessionLaunched(CampaignGameStarter starter)
@@ -66,10 +115,72 @@ namespace BannerKings.Behaviours
             }
         }
 
+        private void EventEnded(MapEvent mapEvent) 
+        {
+            if ((int)mapEvent.WinningSide >= 0)
+            {
+                foreach (var eventParty in mapEvent.PartiesOnSide(mapEvent.WinningSide))
+                {
+                    if (eventParty.GainedInfluence > 0f && eventParty.GainedInfluence < float.MaxValue && 
+                        eventParty.Party.LeaderHero != null)
+                    {
+                        Religion rel = BannerKingsConfig.Instance.ReligionsManager.GetHeroReligion(eventParty.Party.LeaderHero);
+                        if (rel != null && rel.HasDoctrine(DefaultDoctrines.Instance.Warlike))
+                        {
+                            BannerKingsConfig.Instance.ReligionsManager.AddPiety(
+                                eventParty.Party.LeaderHero,
+                                eventParty.GainedInfluence, 
+                                true);
+                        }
+                    }
+                }
+            }
+        }
+
+        private void OnSiegeAftermath(MobileParty attackerParty, Settlement settlement,
+           SiegeAftermathAction.SiegeAftermath aftermathType,
+           Clan previousSettlementOwner,
+           Dictionary<MobileParty, float> partyContributions)
+        {
+            if (aftermathType == SiegeAftermathAction.SiegeAftermath.ShowMercy)
+            {
+                foreach (MobileParty party in partyContributions.Keys)
+                {
+                    if (!party.IsLordParty || party.LeaderHero == null) continue;
+
+                    Religion rel = BannerKingsConfig.Instance.ReligionsManager.GetHeroReligion(party.LeaderHero);
+                    if (rel == null) continue;
+
+                    if (rel.HasDoctrine(DefaultDoctrines.Instance.OsricsVengeance))
+                    {
+                        BannerKingsConfig.Instance.ReligionsManager.AddPiety(party.LeaderHero,
+                            MBRandom.RoundRandomized(settlement.Town.Prosperity * 0.03f), 
+                            true);
+                    }
+
+                    if (settlement.Culture.StringId == BannerKingsConfig.EmpireCulture &&
+                        rel.HasDoctrine(DefaultDoctrines.Instance.RenovatioImperi))
+                    {
+                        foreach (Hero notable in settlement.Notables)
+                        {
+                            ChangeRelationAction.ApplyRelationChangeBetweenHeroes(party.LeaderHero,
+                                notable,
+                                5);
+                        }
+                    }
+                }
+            }
+        }
+
         private void OnOwnerChanged(Settlement settlement, bool openToClaim, Hero newOwner, Hero oldOwner,
             Hero capturerHero,
             ChangeOwnerOfSettlementAction.ChangeOwnerOfSettlementDetail detail)
         {
+            if (capturerHero == null)
+            {
+                return;
+            }
+            
             if (BannerKingsConfig.Instance.ReligionsManager.HasBlessing(capturerHero, DefaultDivinities.Instance.Osric))
             {
                 FeudalTitle title = BannerKingsConfig.Instance.TitleManager.GetTitle(settlement);
@@ -87,71 +198,93 @@ namespace BannerKings.Behaviours
                 return;
             }
 
-            var data = BannerKingsConfig.Instance.PopulationManager.GetPopData(settlement);
+            PopulationData data = BannerKingsConfig.Instance.PopulationManager.GetPopData(settlement);
             if (data != null && data.ReligionData != null)
             {
                 var religion = data.ReligionData.DominantReligion;
 
                 if (religion != null)
                 {
-                    List<Hero> toRemove = new List<Hero>();
-                    int count = settlement.Notables.Count(x => x.IsPreacher);
-                    if (count > 1)
-                    {
-                        foreach (var notable in settlement.Notables)
-                        {
-                            if (notable.IsPreacher)
-                            {
-                                var preacher = BannerKingsConfig.Instance.ReligionsManager.IsPreacher(notable);
-                                if (!preacher)
-                                {
-                                    toRemove.Add(notable);
-                                }
-                            }
-                        }
-                    } 
-                    else if (count == 1)
-                    {
-                        var hero = settlement.Notables.First(x => x.IsPreacher);
-                        BannerKingsConfig.Instance.ReligionsManager.AddClergyman(religion, hero, settlement);
-                    }
+                    AddOwnerPreacher(data);
+                    CleanClergymen(settlement, religion);
+                }
+            }
+        }
 
-                    int heroesCount = settlement.HeroesWithoutParty.Count(x => x.IsPreacher);
-                    if (count > 1)
+        private void AddOwnerPreacher(PopulationData data)
+        {
+            RunWeekly(() =>
+            {
+                Settlement settlement = data.Settlement;
+                Hero owner = settlement.IsVillage ? settlement.Village.GetActualOwner() : settlement.OwnerClan.Leader;
+                if (owner == Hero.MainHero) return;
+
+                bool shouldAdd = false;
+                var ownerRel = BannerKingsConfig.Instance.ReligionsManager.GetHeroReligion(owner);
+                foreach (Hero notable in settlement.Notables)
+                {
+                    if (notable.IsPreacher)
                     {
-                        foreach (var notable in settlement.HeroesWithoutParty)
+                        var notableRel = BannerKingsConfig.Instance.ReligionsManager.GetHeroReligion(notable);
+                        if (notableRel == ownerRel)
                         {
-                            if (notable.IsPreacher)
-                            {
-                                var preacher = BannerKingsConfig.Instance.ReligionsManager.IsPreacher(notable);
-                                if (!preacher)
-                                {
-                                    toRemove.Add(notable);
-                                }
-                            }
+                            shouldAdd = false;
                         }
                     }
+                }
 
-                    if (toRemove.Count > 0)
+                if (shouldAdd && IsInstallingPreacherPossible(owner, settlement).Item1)
+                {
+                    InstallPreacher(data, owner, ownerRel);
+                }
+            },
+            GetType().Name,
+            false);      
+        }
+
+        private void CleanClergymen(Settlement settlement, Religion religion)
+        {
+            List<Hero> toRemove = new List<Hero>();
+            int count = settlement.Notables.Count(x => x.IsPreacher);
+            if (count > 1)
+            {
+                foreach (var notable in settlement.Notables)
+                {
+                    if (notable.IsPreacher)
                     {
-                        List<Hero> notables = (List<Hero>)AccessTools.Field(settlement.GetType(), "_notablesCache").GetValue(settlement);
-                        foreach (var notable in toRemove)
+                        var preacher = BannerKingsConfig.Instance.ReligionsManager.IsPreacher(notable);
+                        if (!preacher)
                         {
-                            if (notables.Contains(notable))
-                            {
-                                notables.Remove(notable);
-                            }
-
-                            notable.AddPower(-10000f);
-                            if (notable.CurrentSettlement != null)
-                            {
-                                LeaveSettlementAction.ApplyForCharacterOnly(notable);
-                            }
-                            if (notable.IsAlive)
-                            {
-                                KillCharacterAction.ApplyByRemove(notable);
-                            }
+                            toRemove.Add(notable);
                         }
+                    }
+                }
+            }
+            else if (count == 1)
+            {
+                var hero = settlement.Notables.First(x => x.IsPreacher);
+                BannerKingsConfig.Instance.ReligionsManager.AddClergyman(religion, hero, settlement);
+            }
+
+
+            if (toRemove.Count > 0)
+            {
+                List<Hero> notables = (List<Hero>)AccessTools.Field(settlement.GetType(), "_notablesCache").GetValue(settlement);
+                foreach (var notable in toRemove)
+                {
+                    if (notables.Contains(notable))
+                    {
+                        notables.Remove(notable);
+                    }
+
+                    notable.AddPower(-10000f);
+                    if (notable.CurrentSettlement != null)
+                    {
+                        LeaveSettlementAction.ApplyForCharacterOnly(notable);
+                    }
+                    if (notable.IsAlive)
+                    {
+                        KillCharacterAction.ApplyByRemove(notable);
                     }
                 }
             }
@@ -257,6 +390,8 @@ namespace BannerKings.Behaviours
          
         private void InitializeFaith(Hero hero)
         {
+            if (DefaultReligions.Instance.All.Count() == 0) return;
+
             Religion startingReligion = null;
             if (hero.Clan != null && hero != hero.Clan.Leader && hero.Clan.Leader != null)
             {
@@ -385,7 +520,7 @@ namespace BannerKings.Behaviours
 
         private void TickFaithXp(Hero hero)
         {
-            float piety = BannerKingsConfig.Instance.PietyModel.CalculateEffect(hero).ResultNumber;
+            float piety = BannerKingsConfig.Instance.ReligionModel.CalculatePietyChange(hero).ResultNumber;
             if (piety > 0f)
             {
                 hero.AddSkillXp(BKSkills.Instance.Theology, MathF.Clamp(piety / 2f, 1f, 10f));
@@ -412,7 +547,7 @@ namespace BannerKings.Behaviours
             {
                 foreach (var hero in ReligionsManager.GetFaithfulHeroes(religion))
                 {
-                    ReligionsManager.AddPiety(religion, hero, BannerKingsConfig.Instance.PietyModel.CalculateEffect(hero).ResultNumber);
+                    ReligionsManager.AddPiety(religion, hero, BannerKingsConfig.Instance.ReligionModel.CalculatePietyChange(hero).ResultNumber);
                 }
             }
         }
@@ -424,11 +559,10 @@ namespace BannerKings.Behaviours
                 return;
             }
 
-            var data = BannerKingsConfig.Instance.PopulationManager.GetPopData(target).ReligionData;
-
-            if (data?.Clergyman != null)
+            foreach (var notable in target.Notables)
             {
-                Utils.Helpers.AddCharacterToKeep(data.Clergyman.Hero, target);
+                if (notable.IsPreacher)
+                    Utils.Helpers.AddCharacterToKeep(notable, target);
             }
         }
 
@@ -496,7 +630,7 @@ namespace BannerKings.Behaviours
                 IsPreacher, InductionOnConsequence);
 
             starter.AddPlayerLine("bk_question_induction", "hero_main_options", "bk_preacher_asked_topics",
-               "{=!}Can I learn about specific topics?",
+               "{=MwCfjHL6}Can I learn about specific topics?",
                IsPreacher,
                () =>
                {
@@ -512,11 +646,11 @@ namespace BannerKings.Behaviours
             starter.AddDialogLine("bk_answer_induction_1", 
                 "bk_preacher_asked_topics",
                 "bk_preacher_asked_topics_options",
-                "{=!}{CLERGYMAN_TOPICS}",
+                "{=69KyJPSL}{CLERGYMAN_TOPICS}",
                 () =>
                 {
                     MBTextManager.SetTextVariable("CLERGYMAN_TOPICS",
-                       new TextObject("{=!}Certainly, {PLAYER.NAME}. What can I help you with?"));
+                       new TextObject("{=MnsCVxH9}Certainly, {PLAYER.NAME}. What can I help you with?"));
                     return true;
                 },
                 null);
@@ -524,8 +658,8 @@ namespace BannerKings.Behaviours
             starter.AddRepeatablePlayerLine("bk_preacher_asked_topics_options",
                 "bk_preacher_asked_topics_options",
                 "bk_preacher_asked_topics_answer",
-                "{=!}{DIVINITY_NAME}",
-                "{=!}I was thinking of another option",
+                "{=Dhz4U9OP}{DIVINITY_NAME}",
+                "{=hnp2M53N}I was thinking of another option",
                 "bk_preacher_asked_topics_options",
                 () =>
                 {
@@ -550,14 +684,14 @@ namespace BannerKings.Behaviours
 
             starter.AddDialogLine("bk_preacher_asked_topics_answer", "bk_preacher_asked_topics_answer",
                 "bk_preacher_asked_topics_answer_last",
-                "{=!}{DIVINITY_TEXT}",
+                "{=91fF5d2N}{DIVINITY_TEXT}",
                 () => true,
                 null
                 );
 
             starter.AddDialogLine("bk_preacher_asked_topics_answer_last", "bk_preacher_asked_topics_answer_last",
                "bk_preacher_asked_topics_options",
-               "{=!}{DIVINITY_LAST_TEXT}",
+               "{=3wUbufLY}{DIVINITY_LAST_TEXT}",
                () => true,
                null);
 
@@ -727,7 +861,9 @@ namespace BannerKings.Behaviours
                     .SetTextVariable("BLESSING_ACTION", religion.Faith.GetBlessingActionName())
                     .ToString(),
                 list,
-                false, 1,
+                false, 
+                1,
+                1,
                 GameTexts.FindText("str_done").ToString(), string.Empty,
                 delegate(List<InquiryElement> x)
                 {
@@ -863,7 +999,9 @@ namespace BannerKings.Behaviours
                 new TextObject("{=Yy2s38FQ}Rites").ToString(),
                 new TextObject("{=B4M6aqo5}Select what rite you would like to perform. Check their descriptions and entries on Religions tab for details.").ToString(), 
                 list,
-                false, 1,
+                false, 
+                1,
+                1,
                 GameTexts.FindText("str_done").ToString(), 
                 string.Empty,
                 delegate(List<InquiryElement> x)

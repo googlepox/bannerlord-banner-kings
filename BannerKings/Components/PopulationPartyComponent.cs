@@ -57,7 +57,7 @@ namespace BannerKings.Components
                 delegate(MobileParty mobileParty)
                 {
                     mobileParty.SetPartyUsedByQuest(true);
-                    mobileParty.Party.Visuals.SetMapIconAsDirty();
+                    mobileParty.Party.SetVisualAsDirty();
                     mobileParty.Ai.SetInitiative(0f, 1f, float.MaxValue);
                     mobileParty.ShouldJoinPlayerBattles = false;
                     mobileParty.Aggressiveness = 0f;
@@ -77,7 +77,6 @@ namespace BannerKings.Components
             caravan.InitializeMobilePartyAtPosition(origin.Culture.EliteCaravanPartyTemplate, origin.GatePosition);
             GiveMounts(ref caravan);
             GiveFood(ref caravan);
-            BannerKingsConfig.Instance.PopulationManager.AddParty(caravan);
         }
 
         public static MobileParty CreateTravellerParty(string id, Settlement origin, Settlement target, string name, int count,
@@ -142,18 +141,17 @@ namespace BannerKings.Components
                     }
 
                     break;
-                }
+                    }
             }
 
             party.InitializeMobilePartyAroundPosition(roster, new TroopRoster(party.Party), origin.GatePosition, 1f);
+            GivePackAnimals(ref party);
             if (!trading)
             {
-                GivePackAnimals(ref party);
                 GiveFood(ref party);
                 GiveItems(ref party, type);
             }
 
-            BannerKingsConfig.Instance.PopulationManager.AddParty(party);
             return party;
         }
 
@@ -192,7 +190,7 @@ namespace BannerKings.Components
                     var list = new List<ValueTuple<ItemObject, float>>();
                     foreach (var material in Materials)
                     {
-                        var item = Campaign.Current.Models.SmithingModel.GetCraftingMaterialItem(material);
+                        var item = TaleWorlds.CampaignSystem.Campaign.Current.Models.SmithingModel.GetCraftingMaterialItem(material);
                         list.Add(new ValueTuple<ItemObject, float>(item, item.Value * MBRandom.RandomFloat));
                     }
 
@@ -245,7 +243,7 @@ namespace BannerKings.Components
             var target = TargetSettlement;
             if (target != null)
             {
-                var distance = Campaign.Current.Models.MapDistanceModel.GetDistance(MobileParty, target);
+                var distance = TaleWorlds.CampaignSystem.Campaign.Current.Models.MapDistanceModel.GetDistance(MobileParty, target);
                 if (distance <= 1f)
                 {
                     EnterSettlementAction.ApplyForParty(MobileParty, target);
@@ -285,7 +283,6 @@ namespace BannerKings.Components
                 else
                 {
                     DestroyPartyAction.Apply(null, MobileParty);
-                    BannerKingsConfig.Instance.PopulationManager.RemoveCaravan(MobileParty);
                 }
             }
         }

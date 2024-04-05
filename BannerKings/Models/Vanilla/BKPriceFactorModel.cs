@@ -1,6 +1,7 @@
 ﻿using BannerKings.Managers.Education.Lifestyles;
 using BannerKings.Managers.Items;
 using BannerKings.Managers.Skills;
+using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Extensions;
 using TaleWorlds.CampaignSystem.GameComponents;
 using TaleWorlds.CampaignSystem.Party;
@@ -35,6 +36,11 @@ namespace BannerKings.Models.Vanilla
                 }
             }
 
+            Settlement settlement = merchant?.Settlement;
+            if (settlement != null && settlement.IsCastle) result *= 3f;
+
+            if (item.HasWeaponComponent || item.HasArmorComponent || item.HasSaddleComponent) result *= 5f;
+
             return result;
         }
 
@@ -58,33 +64,70 @@ namespace BannerKings.Models.Vanilla
                         }
                     }
                 }
+
+                if (settlement.IsVillage)
+                {
+                    inStoreValue += merchant.ItemRoster.GetItemNumber(itemRosterElement.Item) * 20f;
+                }
+
+                if (settlement.IsCastle)
+                {
+                    inStoreValue += merchant.ItemRoster.GetItemNumber(itemRosterElement.Item) * 10f;
+                }
             }
 
             int price = base.GetPrice(itemRosterElement, clientParty, merchant, isSelling, inStoreValue, supply, demand);
+            ItemObject item = itemRosterElement.Item;
+            if (item.HasHorseComponent)
+            {
+                if (item.HorseComponent.MeatCount > 0)
+                {
+                    ItemObject meat = DefaultItems.Meat;
+                    price += (int)(meat.Value * 0.5f * GetPriceFactor(meat, clientParty, merchant, inStoreValue, supply, demand, isSelling));
+                }
+
+                if (item.HorseComponent.HideCount > 0)
+                {
+                    ItemObject hides = DefaultItems.Hides;
+                    price += (int)(hides.Value * 0.5f * GetPriceFactor(hides, clientParty, merchant, inStoreValue, supply, demand, isSelling));
+                }
+            }
+
             return price;
+        }
+
+        private float GetPriceFactor(ItemObject item, MobileParty tradingParty, PartyBase merchant, float inStoreValue, float supply, float demand, bool isSelling)
+        {
+            float basePriceFactor = GetBasePriceFactor(item.GetItemCategory(), inStoreValue, supply, demand, isSelling, item.Value);
+            float tradePenalty = GetTradePenalty(item, tradingParty, merchant, isSelling, inStoreValue, supply, demand);
+            if (!isSelling)
+            {
+                return basePriceFactor * (1f + tradePenalty);
+            }
+
+            return basePriceFactor * 1f / (1f + tradePenalty);
         }
 
         public override float GetBasePriceFactor(ItemCategory itemCategory, float inStoreValue, float supply, float demand,
             bool isSelling, int transferValue)
         {
-            float baseResult = base.GetBasePriceFactor(itemCategory, inStoreValue, supply, demand, isSelling, transferValue);
-
-            if (!itemCategory.IsAnimal)
+            if (isSelling)
             {
-                baseResult *= 0.9f;
+                inStoreValue += (float)transferValue;
             }
 
+            float value = MathF.Pow(demand / (0.1f * supply + inStoreValue * 0.04f + 2f), itemCategory.IsAnimal ? 0.3f : 0.6f);
             if (itemCategory.Properties == ItemCategory.Property.BonusToFoodStores)
             {
-                return MathF.Clamp(baseResult, 0.3f, 3f);
+                return MathF.Clamp(value, 0.3f, 3f);
             }
 
             if (itemCategory.IsTradeGood)
             {
-                return MathF.Clamp(baseResult, 0.3f, 10f);
+                return MathF.Clamp(value, 0.3f, 10f);
             }
 
-            return baseResult;
+            return MathF.Clamp(value, 0.7f, 1.3f);
         }
     }
 }

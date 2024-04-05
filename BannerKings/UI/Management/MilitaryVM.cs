@@ -228,26 +228,66 @@ namespace BannerKings.UI.Management
 
             ManpowerInfo.Add(new InformationElement(new TextObject("{=nkk8no8d}Peasant Manpower:").ToString(), 
                 $"{data.MilitaryData.PeasantManpower:n0}",
-                new TextObject("{=!}Manpower from every non-noble population class. Available classes are affected by kingdom demesne laws. Peasant manpower compromises the majority of military forces.")
+                new TextObject("{=D6mnTxzM}Manpower from every non-noble population class. Available classes are affected by kingdom demesne laws. Peasant manpower compromises the majority of military forces.")
                     .ToString()));
 
             List<RecruitSpawn> recruits = DefaultRecruitSpawns.Instance.GetPossibleSpawns(settlement.Culture, settlement);
-            ManpowerInfo.Add(new InformationElement(new TextObject("{=!}Possible Recruits:").ToString(),
-                recruits.Count.ToString(),
-                recruits.Aggregate(new TextObject("{=!}These are the troops the notables may directly muster, not accounting for further trainning. The chance of each one is correlated to its population class' manpower in relation to the overall manpower.\n\n").ToString(), 
-                (current, recruit) =>
-                {
-                    float totalChance = 0f;
-                    foreach (var spawn in recruits)
-                        if (spawn.PopType == recruit.PopType)
-                            totalChance += spawn.Chance;
+            Dictionary<PopType, float> weights = new Dictionary<PopType, float>(5) 
+            {
+                { PopType.Serfs, 1f },
+                { PopType.Tenants, 1f },
+                { PopType.Craftsmen, 1f },
+                { PopType.Nobles, 1f },
+                { PopType.Slaves, 1f }
+            };
 
-                    return current + Environment.NewLine + new TextObject("{=!}{TROOP} ({TYPE}): {CHANCE}")
-                    .SetTextVariable("TROOP", recruit.Troop.Name)
-                    .SetTextVariable("TYPE", Utils.Helpers.GetClassName(recruit.PopType, recruit.Culture))
-                    .SetTextVariable("CHANCE", FormatValue(BannerKingsConfig.Instance.VolunteerModel
-                    .GetPopTypeSpawnChance(data, recruit.PopType) * (recruit.Chance / totalChance)))
-                    .ToString();
+            foreach (var spawn in recruits)
+                foreach (var type in spawn.GetPossibleTypes())
+                    weights[type] += spawn.GetChance(type);
+
+            Dictionary<PopType, Dictionary<CharacterObject, float>> recruitWeights = new Dictionary<PopType, Dictionary<CharacterObject, float>>()
+            {
+                { PopType.Serfs, new Dictionary<CharacterObject, float>() },
+                { PopType.Tenants, new Dictionary<CharacterObject, float>() },
+                { PopType.Craftsmen, new Dictionary<CharacterObject, float>() },
+                { PopType.Nobles, new Dictionary<CharacterObject, float>() },
+                { PopType.Slaves, new Dictionary<CharacterObject, float>() }
+            };
+
+            foreach (RecruitSpawn spawn in recruits)
+            {
+                foreach (var type in spawn.GetPossibleTypes())
+                {
+                    float chance = BannerKingsConfig.Instance.VolunteerModel.GetPopTypeSpawnChance(data, type) * 
+                        (spawn.GetChance(type) / weights[type]);
+                    recruitWeights[type].Add(spawn.Troop, chance);
+                }
+            }
+
+            ManpowerInfo.Add(new InformationElement(new TextObject("{=jhSJLHp1}Possible Recruits:").ToString(),
+                recruits.Count.ToString(),
+                recruitWeights.Aggregate(new TextObject("{=ridNrfno}These are the troops the notables may directly muster, not accounting for further trainning. The chance of each one is correlated to its population class' manpower in relation to the overall manpower.").ToString(), 
+                (current, recruitWeight) =>
+                {
+                    StringBuilder sb = new StringBuilder();
+                    foreach (var pair in recruitWeight.Value)
+                    {
+                        if (pair.Value > 0f)
+                            sb.Append(new TextObject("{=Og5Ks2R2}{newline}{TYPE}: {CHANCE}")
+                               .SetTextVariable("TYPE", pair.Key.Name)
+                               .SetTextVariable("CHANCE", FormatValue(pair.Value))
+                               .ToString());
+                    }
+
+                    if (sb.Length > 0)
+                    {
+                        return current + Environment.NewLine + Environment.NewLine + new TextObject("{=tUZshvxh}{TROOP}{LIST}")
+                                           .SetTextVariable("TROOP", Utils.Helpers.GetClassName(recruitWeight.Key, settlement.Culture))
+                                           .SetTextVariable("LIST", sb.ToString())
+                                           .ToString();
+                    }
+
+                    return current;
                 })));
 
             ManpowerInfo.Add(new InformationElement(new TextObject("{=4gnA3tsw}Militarism:").ToString(), 
@@ -313,7 +353,7 @@ namespace BannerKings.UI.Management
                     var lord = settlement.OwnerClan.Leader;
                     if (serfs >= party.MemberRoster.TotalManCount)
                     {
-                        var existingParty = Campaign.Current.CampaignObjectManager.Find<MobileParty>(x => x.StringId == "raisedmilitia_" + settlement);
+                        var existingParty = TaleWorlds.CampaignSystem.Campaign.Current.CampaignObjectManager.Find<MobileParty>(x => x.StringId == "raisedmilitia_" + settlement);
                         if (existingParty == null)
                         {
                             if (party.CurrentSettlement == null || party.CurrentSettlement != settlement)

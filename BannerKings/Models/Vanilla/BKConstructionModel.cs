@@ -16,6 +16,7 @@ using TaleWorlds.CampaignSystem.Settlements.Buildings;
 using TaleWorlds.Core;
 using TaleWorlds.Library;
 using TaleWorlds.Localization;
+using TaleWorlds.MountAndBlade.Launcher.Library;
 using static BannerKings.Managers.Policies.BKWorkforcePolicy;
 using static BannerKings.Managers.PopulationManager;
 
@@ -185,7 +186,7 @@ namespace BannerKings.Models.Vanilla
 
             if (clayProportion > 0f)
             {
-                list.Add(new(Campaign.Current.ObjectManager.GetObject<ItemObject>("clay"), (int)(totalItems * clayProportion)));
+                list.Add(new(TaleWorlds.CampaignSystem.Campaign.Current.ObjectManager.GetObject<ItemObject>("clay"), (int)(totalItems * clayProportion)));
             }
 
             if (ironProportion > 0f)
@@ -287,8 +288,8 @@ namespace BannerKings.Models.Vanilla
 
         private float GetWorkforce(Settlement settlement)
         {
-            var data = BannerKingsConfig.Instance.PopulationManager.GetPopData(settlement); 
-
+            var data = BannerKingsConfig.Instance.PopulationManager.GetPopData(settlement);
+            float result = 0f;
             if (settlement.Town != null)
             {
                 bool construction = BannerKingsConfig.Instance.PolicyManager.IsPolicyEnacted(data.Settlement, "workforce",
@@ -298,17 +299,21 @@ namespace BannerKings.Models.Vanilla
                     return 0f;
                 }
             }
+            else if (settlement.IsVillage)
+            {
+                result += data.GetTypeCount(PopType.Craftsmen) * CRAFTSMEN_CONSTRUCTION / 2f;
+            }
 
             float slaves = data.LandData.SlavesConstructionForce * SLAVE_CONSTRUCTION;
-            if (data.TitleData != null && data.TitleData.Title.Contract.IsLawEnacted(DefaultDemesneLaws.Instance.SlavesHardLabor))
+            if (data.TitleData != null && data.TitleData.Title != null && data.TitleData.Title.Contract.IsLawEnacted(DefaultDemesneLaws.Instance.SlavesHardLabor))
             {
                 slaves *= 1.2f;
             }
 
-            float serfs = data.LandData.SerfsConstructionForce * SERF_CONSTRUCTION;
-            float tenants = data.LandData.TenantsConstructionForce * SERF_CONSTRUCTION;
+            result += data.LandData.SerfsConstructionForce * SERF_CONSTRUCTION;
+            result += data.LandData.TenantsConstructionForce * SERF_CONSTRUCTION;
 
-            return serfs + tenants + slaves;
+            return result + slaves;
         }
 
         public int GetMaterialSupply(ItemObject material, Town town)

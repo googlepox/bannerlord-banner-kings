@@ -2,6 +2,7 @@ using BannerKings.Behaviours;
 using BannerKings.Extensions;
 using BannerKings.Managers.Innovations;
 using BannerKings.Managers.Populations;
+using BannerKings.Managers.Populations.Estates;
 using BannerKings.Managers.Titles.Laws;
 using System.Linq;
 using TaleWorlds.CampaignSystem;
@@ -15,11 +16,11 @@ using static BannerKings.Managers.PopulationManager;
 
 namespace BannerKings.Models.BKModels
 {
-    public class BKGrowthModel : IGrowthModel
+    public class BKGrowthModel : GrowthModel
     {
         private const float POP_GROWTH_FACTOR = 0.005f;
 
-        public ExplainedNumber CalculateEffect(Settlement settlement, PopulationData data, bool descriptions = false)
+        public override ExplainedNumber CalculateEffect(Settlement settlement, PopulationData data, bool descriptions = false)
         {
             var result = new ExplainedNumber(5f, descriptions);
 
@@ -64,7 +65,7 @@ namespace BannerKings.Models.BKModels
             return result;
         }
 
-        public ExplainedNumber CalculateSettlementCap(Settlement settlement, PopulationData data, bool descriptions = false)
+        public override ExplainedNumber CalculateSettlementCap(Settlement settlement, PopulationData data, bool descriptions = false)
         {
             var result = new ExplainedNumber(0f, descriptions);
 
@@ -74,14 +75,18 @@ namespace BannerKings.Models.BKModels
             }
 
             var land = data.LandData;
+            float landFactor = 1f;
+            if (settlement.IsTown) landFactor = 4f;
+            else if (settlement.IsCastle) landFactor = 2f;
+
             var farmland = land.GetAcreOutput("farmland") * 20f;
-            result.Add(land.Farmland * farmland, new TextObject("{=zMPm162W}Farmlands"));
+            result.Add(land.Farmland * farmland * landFactor, new TextObject("{=zMPm162W}Farmlands"));
 
             var pasture = land.GetAcreOutput("pasture") * 20f;
-            result.Add(land.Pastureland * pasture, new TextObject("{=ngRhXYj1}Pasturelands"));
+            result.Add(land.Pastureland * pasture * landFactor, new TextObject("{=ngRhXYj1}Pasturelands"));
 
             var woods = land.GetAcreOutput("woodland") * 20f;
-            result.Add(land.Woodland * woods, new TextObject("{=qPQ7HKgG}Woodlands"));
+            result.Add(land.Woodland * woods * landFactor, new TextObject("{=qPQ7HKgG}Woodlands"));
 
             var town = settlement.Town;
             if (town != null)
@@ -92,7 +97,7 @@ namespace BannerKings.Models.BKModels
                     result.Add(walls.CurrentLevel * 5000f, DefaultBuildingTypes.Fortifications.Name);
 
                     InnovationData innovationData = BannerKingsConfig.Instance.InnovationsManager.GetInnovationData(settlement.Culture);
-                    if (innovationData.HasFinishedInnovation(DefaultInnovations.Instance.Burgage))
+                    if (innovationData != null && innovationData.HasFinishedInnovation(DefaultInnovations.Instance.Burgage))
                     {
                         result.AddFactor(0.15f, DefaultInnovations.Instance.Burgage.Name);
                     }
@@ -103,9 +108,9 @@ namespace BannerKings.Models.BKModels
                     result.Add(walls.CurrentLevel * 1500f, DefaultBuildingTypes.Fortifications.Name);
                 }
 
-                result.Add(settlement.Prosperity / 5f, GameTexts.FindText("str_map_tooltip_prosperity"));
+                result.Add(settlement.Town.Prosperity / 5f, GameTexts.FindText("str_map_tooltip_prosperity"));
 
-                var capital = Campaign.Current.GetCampaignBehavior<BKCapitalBehavior>().GetCapital(town.OwnerClan.Kingdom);
+                var capital = TaleWorlds.CampaignSystem.Campaign.Current.GetCampaignBehavior<BKCapitalBehavior>().GetCapital(town.OwnerClan.Kingdom);
                 if (capital == town)
                 {
                     result.AddFactor(0.4f, new TextObject("{=fQVyeiJb}Capital"));
@@ -115,7 +120,24 @@ namespace BannerKings.Models.BKModels
             return result;
         }
 
-        public ExplainedNumber CalculatePopulationClassDemand(Settlement settlement, PopType type, bool explanations = false)
+        public override ExplainedNumber CalculateEstateCap(Estate estate, bool descriptions = false)
+        {
+            var result = new ExplainedNumber(0f, descriptions);
+
+            var land = estate.EstatesData.Settlement.PopulationData().LandData;
+            var farmland = land.GetAcreOutput("farmland") * 20f;
+            result.Add((int)(estate.Farmland * farmland), new TextObject("{=zMPm162W}Farmlands"));
+
+            var pasture = land.GetAcreOutput("pasture") * 20f;
+            result.Add((int)(estate.Pastureland * pasture), new TextObject("{=ngRhXYj1}Pasturelands"));
+
+            var woods = land.GetAcreOutput("woodland") * 20f;
+            result.Add((int)(estate.Woodland * woods), new TextObject("{=qPQ7HKgG}Woodlands"));
+
+            return result;
+        }
+
+        public override ExplainedNumber CalculatePopulationClassDemand(Settlement settlement, PopType type, bool explanations = false)
         {
             var result = new ExplainedNumber(1f, explanations);
             var faction = settlement.OwnerClan.Kingdom;
@@ -138,7 +160,7 @@ namespace BannerKings.Models.BKModels
                     if (settlement.IsVillage)
                     {
                         InnovationData innovationData = BannerKingsConfig.Instance.InnovationsManager.GetInnovationData(settlement.Culture);
-                        if (innovationData.HasFinishedInnovation(DefaultInnovations.Instance.Manorialism))
+                        if (innovationData != null && innovationData.HasFinishedInnovation(DefaultInnovations.Instance.Manorialism))
                         {
                             result.AddFactor(-0.6f, DefaultInnovations.Instance.Manorialism.Name);
                         }
@@ -206,7 +228,7 @@ namespace BannerKings.Models.BKModels
                     }
 
                     if (settlement.Town != null)
-                        result.AddFactor((settlement.Prosperity - 15000f) / 30000f, 
+                        result.AddFactor((settlement.Town.Prosperity - 15000f) / 30000f, 
                             new TextObject("{=mgK8aZuj}Prosperity"));
                 }
 
@@ -234,7 +256,7 @@ namespace BannerKings.Models.BKModels
                 {
                     if (settlement.Town != null)
                     {
-                        result.AddFactor(settlement.Prosperity / 30000f, new TextObject("{=mgK8aZuj}Prosperity"));
+                        result.AddFactor(settlement.Town.Prosperity / 30000f, new TextObject("{=mgK8aZuj}Prosperity"));
 
                         if (settlement.IsTown)
                             result.AddFactor(data.EconomicData.Mercantilism.ResultNumber * 0.1f, new TextObject("{=5eHCGMEK}Mercantilism"));
@@ -256,14 +278,14 @@ namespace BannerKings.Models.BKModels
                     }
 
                     if (settlement.Town != null)
-                        result.AddFactor(settlement.Prosperity / 15000f, new TextObject("{=mgK8aZuj}Prosperity"));
+                        result.AddFactor(settlement.Town.Prosperity / 15000f, new TextObject("{=mgK8aZuj}Prosperity"));
                 }
             }
 
             return result;
         }
 
-        public ExplainedNumber CalculateSlavePrice(Settlement settlement, bool explanations = false)
+        public override ExplainedNumber CalculateSlavePrice(Settlement settlement, bool explanations = false)
         {
             var result = new ExplainedNumber(150f, explanations);
             result.LimitMin(0f);
@@ -280,11 +302,6 @@ namespace BannerKings.Models.BKModels
             result.AddFactor(medium - fraction, new TextObject("{=G15w2C46}Local demand"));
 
             return result;
-        }
-
-        public ExplainedNumber CalculateEffect(Settlement settlement)
-        {
-            return new ExplainedNumber();
         }
     }
 }

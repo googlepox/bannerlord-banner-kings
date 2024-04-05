@@ -16,7 +16,7 @@ namespace BannerKings.Models.Vanilla
         {
             var result = new ExplainedNumber(50f, true);
 
-            var prosperity = settlement.Prosperity / 5000f;
+            var prosperity = settlement.Town.Prosperity / 5000f;
             if (prosperity >= 1f)
             {
                 result.Add(prosperity, GameTexts.FindText("str_prosperity"));
@@ -291,7 +291,7 @@ namespace BannerKings.Models.Vanilla
 
         public override int GetEnergyCostForSmithing(ItemObject item, Hero hero)
         {
-            var max = Campaign.Current.GetCampaignBehavior<ICraftingCampaignBehavior>().GetMaxHeroCraftingStamina(hero);
+            var max = TaleWorlds.CampaignSystem.Campaign.Current.GetCampaignBehavior<ICraftingCampaignBehavior>().GetMaxHeroCraftingStamina(hero);
             var result = base.GetEnergyCostForSmithing(item, hero);
 
             if (item.WeaponComponent is {PrimaryWeapon: { }})

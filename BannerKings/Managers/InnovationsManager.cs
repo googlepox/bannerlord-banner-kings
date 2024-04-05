@@ -13,43 +13,44 @@ namespace BannerKings.Managers
         public InnovationsManager()
         {
             Innovations = new Dictionary<CultureObject, InnovationData>();
-            InitializeInnovations();
         }
 
         [SaveableProperty(1)] private Dictionary<CultureObject, InnovationData> Innovations { get; set; }
 
         private void InitializeInnovations()
         {
-            foreach (var culture in Game.Current.ObjectManager.GetObjectTypeList<CultureObject>().Where(culture => !culture.IsBandit && culture.IsInitialized))
+            foreach (var culture in Game.Current.ObjectManager.GetObjectTypeList<CultureObject>().Where(culture => !culture.IsBandit && culture.CanHaveSettlement))
             {
-                Innovations.Add(culture, new InnovationData(new List<Innovation>(), culture));
-                foreach (var innovation in DefaultInnovations.Instance.All)
+                if (!Innovations.ContainsKey(culture))
                 {
-                    if (innovation.Culture != null && innovation.Culture != culture)
-                    {
-                        continue;
-                    }
-
-                    Innovations[culture].AddInnovation(innovation.GetCopy());
+                    InnovationData data = new InnovationData(new List<Innovation>(), culture);
+                    Innovations.Add(culture, data);
+                    foreach (var innovation in DefaultInnovations.Instance.All)
+                        data.AddInnovation(innovation.GetCopy(culture));
+                    data.Update();
                 }
             }
         }
 
         public void PostInitialize()
         {
+            InitializeInnovations();
             foreach (var data in Innovations.Values)
             {
                 foreach (var innovation in DefaultInnovations.Instance.All)
                 {
-                    if (innovation.Culture != null && data.CulturalHead != null && innovation.Culture != data.CulturalHead.Culture)
-                    {
-                        continue;
-                    }
-
-                    data.AddInnovation(innovation.GetCopy());
+                    data.AddInnovation(innovation);
                 }
 
                 data.PostInitialize();
+            }
+
+            foreach (var culture in TaleWorlds.CampaignSystem.Campaign.Current.ObjectManager.GetObjectTypeList<CultureObject>())
+            {
+                InnovationData data = BannerKingsConfig.Instance.InnovationsManager.GetInnovationData(culture);
+                if (data == null) continue;
+
+                data.Era.TriggerEra(culture);
             }
         }
 
@@ -61,20 +62,10 @@ namespace BannerKings.Managers
             }
         }
 
-
-        public void AddSettlementResearch(Settlement settlement)
-        {
-            if (!Innovations.ContainsKey(settlement.Culture))
-            {
-                return;
-            }
-
-            var data = Innovations[settlement.Culture];
-            data.AddResearch(BannerKingsConfig.Instance.InnovationsModel.CalculateSettlementResearch(settlement).ResultNumber);
-        }
-
         public InnovationData GetInnovationData(CultureObject culture)
         {
+            if (culture == null) return null;
+
             InnovationData data = null;
             if (Innovations.ContainsKey(culture))
             {

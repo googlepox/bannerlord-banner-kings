@@ -1,11 +1,10 @@
-using BannerKings.Extensions;
 using BannerKings.Managers.Populations;
 using BannerKings.Managers.Populations.Estates;
-using BannerKings.Managers.Titles.Laws;
 using BannerKings.UI.Items;
 using BannerKings.UI.Items.UI;
 using System.Collections.Generic;
 using TaleWorlds.CampaignSystem;
+using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.ViewModelCollection;
 using TaleWorlds.CampaignSystem.ViewModelCollection.GameMenu.TownManagement;
 using TaleWorlds.Core;
@@ -22,10 +21,10 @@ namespace BannerKings.UI.Estates
         private MBBindingList<TownManagementDescriptionItemVM> mainInfo;
         private MBBindingList<MBBindingList<InformationElement>> extraInfos;
         private ImageIdentifierVM imageIdentifier;
-        private BannerKingsSelectorVM<BKItemVM> taskSelector, dutySelector;
+        private BannerKingsSelectorVM<BKItemVM> taskSelector;
         private EstateAction grantAction, buyAction, reclaimAction;
-        private HintViewModel buyHint, grantHint, reclaimHint;
-        private bool playerOwned, dutyEnabled, buyVisible, grantVisible, reclaimVisible;
+        private HintViewModel buyHint, grantHint, reclaimHint, retinueHint;
+        private bool playerOwned, buyVisible, grantVisible, reclaimVisible, retinueEnabled;
         private string nameText;
 
         public EstateVM(Estate estate, PopulationData data) : base(data, true)
@@ -37,7 +36,6 @@ namespace BannerKings.UI.Estates
             MainInfo = new MBBindingList<TownManagementDescriptionItemVM>();
             ExtraInfos = new MBBindingList<MBBindingList<InformationElement>>();
             
-            DutyEnabled = false;
             PlayerOwned = false;
 
             RefreshValues();
@@ -78,15 +76,6 @@ namespace BannerKings.UI.Estates
                TownManagementDescriptionItemVM.DescriptionType.Gold,
                new BasicTooltipViewModel(() => value.GetExplanations())));
 
-            var serfManpower = Estate.GetManpower(Managers.PopulationManager.PopType.Serfs);
-            var slavesManpower = Estate.GetManpower(Managers.PopulationManager.PopType.Serfs);
-            MainInfo.Add(new TownManagementDescriptionItemVM(new TextObject("{=t9sG2dMh}Manpower:"),
-               serfManpower + slavesManpower,
-               0,
-               TownManagementDescriptionItemVM.DescriptionType.Militia,
-               new BasicTooltipViewModel(() => new TextObject("{=RhMomMnx}This estate's manpower, drawn from it's population. This manpower is used to fuel the estate owner's volunteers. When volunteers are recruited from an estate-owner, the manpower is drawn from the estate rather than the overall settlement.")
-               .ToString())));
-
             var acreage = Estate.AcreageGrowth;
             MainInfo.Add(new TownManagementDescriptionItemVM(new TextObject("{=FT5kL9k5}Acreage:"),
                (int)Estate.Acreage,
@@ -95,6 +84,13 @@ namespace BannerKings.UI.Estates
                new BasicTooltipViewModel(() => acreage.GetExplanations())));
 
             PlayerOwned = Estate.Owner == Hero.MainHero && !IsDisabled;
+            RetinueHint = new HintViewModel(new TextObject("{=g9WenypY}Enter dialogue with your retainers. You can command and manage their party."));
+            if (PlayerOwned)
+            {
+                retinueEnabled = Estate.Retinue != null && Estate.Retinue.CurrentSettlement == Estate.EstatesData.Settlement;
+                if (!retinueEnabled)
+                    RetinueHint = new HintViewModel(new TextObject("{=BuRha0Av}Your estate either does not have a retinue yet or it is currently travelling. The retinue must be within the settlement so dialogue can be entered with this option."));
+            }
 
             TaskSelector = new BannerKingsSelectorVM<BKItemVM>(PlayerOwned, 0, OnTaskChange);
             TaskSelector.AddItem(new BKItemVM(EstateTask.Prodution, true, "",
@@ -108,25 +104,6 @@ namespace BannerKings.UI.Estates
 
             var settlement = Estate.EstatesData.Settlement;
             var title = BannerKingsConfig.Instance.TitleManager.GetTitle(settlement);
-            if (title != null)
-            {
-                var owner = settlement.IsVillage ? settlement.Village.GetActualOwner() : settlement.Owner;
-                DutyEnabled = title.Contract.IsLawEnacted(DefaultDemesneLaws.Instance.EstateTenureFeeTail) && owner == Hero.MainHero;
-            }
-            else
-            {
-                DutyEnabled = false;
-            }
-
-            DutySelector = new BannerKingsSelectorVM<BKItemVM>(DutyEnabled, 0, OnDutyChange);
-            DutySelector.AddItem(new BKItemVM(EstateDuty.Taxation, true, "",
-                GameTexts.FindText("str_bk_estate_duty", EstateDuty.Taxation.ToString())));
-
-            DutySelector.AddItem(new BKItemVM(EstateDuty.Military, true, "",
-                GameTexts.FindText("str_bk_estate_duty", EstateDuty.Military.ToString())));
-
-            DutySelector.SelectedIndex = (int)Estate.Duty;
-            DutySelector.SetOnChangeAction(OnDutyChange);
 
 
             if (IsEnabled)
@@ -148,17 +125,6 @@ namespace BannerKings.UI.Estates
 
                 ExtraInfos.Add(LandInfo);
 
-                var production = Estate.Production;
-                WorkforceInfo.Add(new InformationElement(new TextObject("{=Fin3KXMP}Goods Production:").ToString(),
-                    new TextObject("{=mbUwoU0h}{POINTS} (Daily)")
-                    .SetTextVariable("POINTS", production.ResultNumber.ToString("0.00"))
-                    .ToString(),
-                    new TextObject("{=ez3NzFgO}{TEXT}\n{EXPLANATIONS}")
-                        .SetTextVariable("TEXT",
-                            new TextObject("{=g480uUyC}Sum of goods produced on a daily basis, including all the types produced here."))
-                        .SetTextVariable("EXPLANATIONS", production.GetExplanations())
-                        .ToString()));
-
                 WorkforceInfo.Add(new InformationElement(new TextObject("{=p7yrSOcC}Available Workforce:").ToString(),
                     Estate.AvailableWorkForce.ToString(),
                     new TextObject("{=1mJgkKHB}The amount of productive workers in this region, able to work the land").ToString()));
@@ -170,20 +136,10 @@ namespace BannerKings.UI.Estates
 
                 ExtraInfos.Add(WorkforceInfo);
 
-                StatsInfo.Add(new InformationElement(GameTexts.FindText("str_total_influence").ToString(),
-                    FormatFloatGain(Estate.Influence),
-                    new TextObject("{=V9CJARWT}Influence from local nobles.").ToString()));
-
                 var tax = Estate.TaxRatio;
                 StatsInfo.Add(new InformationElement(new TextObject("{=Kq3T4MBV}Tax Rate:").ToString(),
                     FormatValue(tax.ResultNumber),
                     tax.GetExplanations()));
-
-                
-                StatsInfo.Add(new InformationElement(new TextObject("{=hgBL20Jm}Tax Accumulated:").ToString(),
-                    Estate.TaxAccumulated.ToString("0"),
-                    new TextObject("{=G1sYULTd}The accumulated profits since villagers last brought production revenues back. This is zeroed once the estate owner collects their income.").ToString()));
-
 
                 ExtraInfos.Add(StatsInfo);
             }
@@ -207,6 +163,8 @@ namespace BannerKings.UI.Estates
             var title = BannerKingsConfig.Instance.TitleManager.GetTitle(settlement);
             ReclaimVisible = Estate.Owner != null && Hero.MainHero == title.deJure && settlement.MapFaction == Hero.MainHero.MapFaction &&
                 Estate.Owner.MapFaction != Hero.MainHero.MapFaction;
+
+            if (Estate.Owner != null && Estate.Owner.IsNotable) BuyVisible = false;
         }
 
         private void ExecuteBuy()
@@ -216,6 +174,20 @@ namespace BannerKings.UI.Estates
                 buyAction.TakeAction();
                 RefreshValues();
             } 
+        }
+
+        private void ExecuteRetinue()
+        {
+            if (retinueEnabled)
+            {
+                EncounterManager.StartPartyEncounter(MobileParty.MainParty.Party, Estate.Retinue.Party);
+                ExecuteClose();
+            }
+        }
+
+        private void ExecuteSlaves()
+        {
+            UIHelper.ShowEstateTransferScreen(Estate);
         }
 
         private void ExecuteGrant()
@@ -231,7 +203,13 @@ namespace BannerKings.UI.Estates
                         hero.Name.ToString(),
                         new ImageIdentifier(CampaignUIHelper.GetCharacterCode(hero.CharacterObject, true)),
                         action.Possible,
-                        action.Reason.ToString()));
+                        new TextObject("{=D2wXBQAU}{POSSIBLE}{newline}Grant this property to {HERO}. They serve the {CLAN} clan ({OWNER}) and have {OPINION} opinion towards you.")
+                        .SetTextVariable("POSSIBLE", action.Reason)
+                        .SetTextVariable("HERO", hero.Name)
+                        .SetTextVariable("CLAN", hero.Clan.Name)
+                        .SetTextVariable("OWNER", hero.Clan == Clan.PlayerClan ? new TextObject("{=mgL0UYTE}your clan") : hero.Clan.Leader.Name)
+                        .SetTextVariable("OPINION", (int)hero.GetRelationWithPlayer())
+                        .ToString()));
                 }
 
                 MBInformationManager.ShowMultiSelectionInquiry(new MultiSelectionInquiryData(
@@ -239,6 +217,7 @@ namespace BannerKings.UI.Estates
                     new TextObject("{=1bBJj789}Grant this estate to another person. By granting them ownership, they will owe the estate's income and access to manpower. Taxes may still be applied.").ToString(),
                     list,
                     true,
+                    1,
                     1,
                     GameTexts.FindText("str_accept").ToString(),
                     string.Empty,
@@ -300,6 +279,11 @@ namespace BannerKings.UI.Estates
 
         [DataSourceProperty]
         public string BuyText => new TextObject("{=WabTyEdr}Buy").ToString();
+        [DataSourceProperty]
+        public string RetinueText => new TextObject("{=06vrmp18}Retinue").ToString();
+
+        [DataSourceProperty]
+        public string SlavesText => new TextObject("Slaves").ToString(); 
 
         [DataSourceProperty]
         public string GrantText => new TextObject("{=dugq4xHo}Grant").ToString();
@@ -323,20 +307,6 @@ namespace BannerKings.UI.Estates
         }
 
         [DataSourceProperty]
-        public BannerKingsSelectorVM<BKItemVM> DutySelector
-        {
-            get => dutySelector;
-            set
-            {
-                if (value != dutySelector)
-                {
-                    dutySelector = value;
-                    OnPropertyChangedWithValue(value);
-                }
-            }
-        }
-
-        [DataSourceProperty]
         public bool PlayerOwned
         {
             get => playerOwned;
@@ -346,21 +316,6 @@ namespace BannerKings.UI.Estates
                 {
                     playerOwned = value;
                     OnPropertyChanged("PlayerOwned");
-                }
-            }
-        }
-
-
-        [DataSourceProperty]
-        public bool DutyEnabled
-        {
-            get => dutyEnabled;
-            set
-            {
-                if (value != dutyEnabled)
-                {
-                    dutyEnabled = value;
-                    OnPropertyChanged("DutyEnabled");
                 }
             }
         }
@@ -407,7 +362,6 @@ namespace BannerKings.UI.Estates
             }
         }
 
-
         [DataSourceProperty]
         public HintViewModel GrantHint
         {
@@ -432,6 +386,20 @@ namespace BannerKings.UI.Estates
                 {
                     buyHint = value;
                     OnPropertyChanged("BuyHint");
+                }
+            }
+        }
+
+        [DataSourceProperty]
+        public HintViewModel RetinueHint
+        {
+            get => retinueHint;
+            set
+            {
+                if (value != retinueHint)
+                {
+                    retinueHint = value;
+                    OnPropertyChanged("RetinueHint");
                 }
             }
         }

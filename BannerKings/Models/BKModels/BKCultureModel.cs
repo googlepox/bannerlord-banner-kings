@@ -1,11 +1,12 @@
 using BannerKings.Managers.Buildings;
+using BannerKings.Managers.Goals;
 using BannerKings.Managers.Institutions.Religions;
 using BannerKings.Managers.Populations;
 using BannerKings.Managers.Skills;
 using BannerKings.Managers.Titles;
+using BannerKings.Managers.Titles.Governments;
 using System.Linq;
 using TaleWorlds.CampaignSystem;
-using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.Core;
 using TaleWorlds.Localization;
@@ -50,7 +51,7 @@ namespace BannerKings.Models.BKModels
                     if (dominantLanguage != null)
                     {
                         var education = BannerKingsConfig.Instance.EducationManager.GetHeroEducation(settlement.Owner);
-                        result.Add((education.GetLanguageFluency(dominantLanguage) * 0.2f) - 0.01f, 
+                        result.Add((education.GetLanguageFluency(dominantLanguage) * 0.2f) - 0.01f,
                             new TextObject("{LANGUAGE} fluency")
                             .SetTextVariable("LANGUAGE", dominantLanguage.Name));
                     }
@@ -71,16 +72,17 @@ namespace BannerKings.Models.BKModels
             {
                 if (data.Acceptance > data.Assimilation)
                 {
-                    result.Add(-0.02f);
+                    result.Add(-0.001f);
                 }
                 else if (data.Acceptance < data.Assimilation)
                 {
-                    result.Add(0.02f);
+                    result.Add(0.001f);
                 }
             }
 
             return result;
         }
+
         public ExplainedNumber GetConversionCost(Hero notable, Hero converter)
         {
             var result = new ExplainedNumber(30f, false);
@@ -133,12 +135,25 @@ namespace BannerKings.Models.BKModels
 
             result.Add(data.Acceptance * 50f, new TextObject("{=2qB0s9H9}Cultural acceptance"));
 
-            var owner = settlement.Owner;
+            Hero owner = settlement.Owner;
             if (owner != null)
             {
                 if (data.Culture == owner.Culture)
                 {
                     result.Add(8f, new TextObject("{=LHFoaUGo}Owner Culture"));
+                }
+
+                Kingdom kingdom = owner?.Clan.Kingdom;
+                if (kingdom != null)
+                {
+                    FeudalTitle title = BannerKingsConfig.Instance.TitleManager.GetSovereignTitle(kingdom);
+                    if (title != null)
+                    {
+                        if (title.Contract.Government == DefaultGovernments.Instance.Imperial)
+                        {
+                            result.AddFactor(0.4f, DefaultGovernments.Instance.Imperial.Name);
+                        }
+                    }
                 }
             }
 
@@ -169,7 +184,7 @@ namespace BannerKings.Models.BKModels
             }
             else if (settlement.IsVillage)
             {
-                var village = settlement.Village;
+                Village village = settlement.Village;
                 if (village != null && village.TradeBound != null)
                 {
                     if (data.Culture == settlement.Village.TradeBound.Culture)
@@ -177,12 +192,6 @@ namespace BannerKings.Models.BKModels
                         result.Add(20f, settlement.Village.TradeBound.Name);
                     }
                 }
-            }
-
-            LegitimacyType legitimacy = (LegitimacyType)BannerKingsConfig.Instance.LegitimacyModel.CalculateEffect(settlement).ResultNumber;
-            if (legitimacy == LegitimacyType.Unlawful || legitimacy == LegitimacyType.Unlawful_Foreigner)
-            {
-                result.Add(-5f, new TextObject("{=njD4zXuM}Unlawful owner"));
             }
 
             return result;
@@ -200,52 +209,6 @@ namespace BannerKings.Models.BKModels
             return (settlement.Notables.Count * 15f) * (notable.Power / totalPower);
         }
 
-        public ExplainedNumber CalculateEffect(Settlement settlement)
-        {
-            var ownerCulture = settlement.OwnerClan.Culture;
-            var baseResult = new ExplainedNumber();
-
-            if (settlement.Culture != ownerCulture)
-            {
-                baseResult.Add(-0.005f, new TextObject("{=2wOt5txz}Natural resistance"));
-                var random1 = 0.001f * MBRandom.RandomFloat;
-                var random2 = 0.001f * MBRandom.RandomFloat;
-                baseResult.Add(random1 - random2, new TextObject("{=wJV3Gdc1}Random factors"));
-
-                if (!settlement.IsVillage && settlement.Town != null)
-                {
-                    baseResult.Add(0.005f * (1f * (settlement.Town.Security * 0.01f)), new TextObject("{=a2GE4xwy}Security effect"));
-                }
-
-                var governor = settlement.IsVillage 
-                    ? settlement.Village.Bound.Town.Governor 
-                    : settlement.Town.Governor;
-                if (governor != null)
-                {
-                    var skill = governor.GetSkillValue(DefaultSkills.Steward);
-                    var effect = skill * 0.00005f;
-                    if (effect > 0.015f)
-                    {
-                        effect = 0.015f;
-                    }
-
-                    baseResult.Add(effect, new TextObject("{=gafTzKhz}Governor effect"));
-
-                    var lordshipTraditionalistPerk = BKPerks.Instance.LordshipTraditionalist;
-                    if (governor.GetPerkValue(BKPerks.Instance.LordshipTraditionalist))
-                    {
-                        baseResult.AddFactor(0.1f, lordshipTraditionalistPerk.Name);
-                    }
-                }
-            }
-            else
-            {
-                baseResult.Add(0f, new TextObject("{=uHDDG1Vq}Already assimilated"));
-            }
-
-            ;
-            return baseResult;
-        }
 
         public ExplainedNumber CalculateEffect(Settlement settlement, CultureDataClass data)
         {

@@ -30,7 +30,7 @@ namespace BannerKings.Behaviours
     {
         public override void RegisterEvents()
         {
-            CampaignEvents.OnNewGameCreatedPartialFollowUpEndEvent.AddNonSerializedListener(this, OnGameCreatedFollowUp);
+            CampaignEvents.OnCharacterCreationIsOverEvent.AddNonSerializedListener(this, OnGameCreatedFollowUp);
             CampaignEvents.DailyTickEvent.AddNonSerializedListener(this, OnDailyTick);
             CampaignEvents.DailyTickPartyEvent.AddNonSerializedListener(this, OnPartyDailyTick);
             CampaignEvents.SettlementEntered.AddNonSerializedListener(this, OnSettlementEntered);
@@ -42,7 +42,7 @@ namespace BannerKings.Behaviours
         {
         }
 
-        private void OnGameCreatedFollowUp(CampaignGameStarter starter)
+        private void OnGameCreatedFollowUp()
         {
             foreach (Settlement settlement in Settlement.All)
             {
@@ -76,8 +76,11 @@ namespace BannerKings.Behaviours
                     return;
                 }
 
-                RequestPeerageDecision decision = new RequestPeerageDecision(clan.Leader);
-                decision.DoAiDecision();
+                if (MBRandom.RandomFloat < 0.05f)
+                {
+                    RequestPeerageDecision decision = new RequestPeerageDecision(clan.Leader);
+                    decision.DoAiDecision();
+                }
 
                 var villageSettlement = gentryTuple.Item2.EstatesData.Settlement;
                 foreach (var member in clan.Heroes)
@@ -205,10 +208,6 @@ namespace BannerKings.Behaviours
 
         private void FinishParty(WarPartyComponent party, Estate estate)
         {
-            estate.AddPopulation(PopType.Serfs, party.MobileParty.MemberRoster.TotalRegulars);
-            estate.AddManpower(PopType.Serfs, party.MobileParty.MemberRoster.TotalRegulars);
-
-            estate.AddPopulation(PopType.Slaves, party.MobileParty.PrisonRoster.TotalRegulars);
             DestroyPartyAction.Apply(null, party.MobileParty);
         }
 
@@ -246,6 +245,7 @@ namespace BannerKings.Behaviours
                 MobileParty party = MobilePartyHelper.SpawnLordParty(clan.Leader, settlement);
                 EnterSettlementAction.ApplyForParty(party, settlement);
                 LeaveSettlementAction.ApplyForParty(party);
+                estate.TakeRetinue(party);
                 SetPartyAiAction.GetActionForEscortingParty(party, army.LeaderParty);
             }
         }
@@ -292,6 +292,7 @@ namespace BannerKings.Behaviours
                     return;
                 }
 
+                data.EstateData.CreateEstates(data);
                 Estate vacantEstate = data.EstateData.Estates.FirstOrDefault(x => x.IsDisabled);
                 if (vacantEstate == null)
                 {
@@ -440,7 +441,7 @@ namespace BannerKings.Behaviours
             int childrenQuantity = MBRandom.RandomInt(0, (int)(fertilityYears / 3f));
             for (int i = 0; i < childrenQuantity; i++)
             {
-                bool female = MBRandom.RandomFloat <= Campaign.Current.Models.PregnancyModel.DeliveringFemaleOffspringProbability;
+                bool female = MBRandom.RandomFloat <= TaleWorlds.CampaignSystem.Campaign.Current.Models.PregnancyModel.DeliveringFemaleOffspringProbability;
                 Equipment childEquipment = GetEquipmentIfPossible(culture, true, female);
                 if (childEquipment == null)
                 {
@@ -471,7 +472,7 @@ namespace BannerKings.Behaviours
             hero.Mother = mother;
             hero.Father = father;
             EquipmentFlags customFlags = EquipmentFlags.IsNobleTemplate | EquipmentFlags.IsChildEquipmentTemplate;
-            MBEquipmentRoster randomElementInefficiently = Campaign.Current.Models.EquipmentSelectionModel
+            MBEquipmentRoster randomElementInefficiently = TaleWorlds.CampaignSystem.Campaign.Current.Models.EquipmentSelectionModel
                 .GetEquipmentRostersForDeliveredOffspring(hero).GetRandomElementInefficiently<MBEquipmentRoster>();
             if (randomElementInefficiently != null)
             {
@@ -488,7 +489,7 @@ namespace BannerKings.Behaviours
             TextObject fullName;
             NameGenerator.Current.GenerateHeroNameAndHeroFullName(hero, out firstName, out fullName, false);
             hero.SetName(fullName, firstName);
-            hero.HeroDeveloper.DeriveSkillsFromTraits(true, null);
+            hero.HeroDeveloper.InitializeHeroDeveloper(true, null);
             BodyProperties bodyProperties = mother.BodyProperties;
             BodyProperties bodyProperties2 = father.BodyProperties;
             int seed = isOffspringFemale ? mother.CharacterObject.GetDefaultFaceSeed(1) : father.CharacterObject.GetDefaultFaceSeed(1);

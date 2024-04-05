@@ -1,8 +1,12 @@
+using BannerKings.Campaign.Skills;
 using BannerKings.Managers.Court;
+using BannerKings.Managers.Institutions.Religions.Doctrines;
 using BannerKings.Managers.Institutions.Religions.Faiths;
+using BannerKings.Managers.Skills;
 using BannerKings.Managers.Titles;
 using BannerKings.Utils;
 using BannerKings.Utils.Extensions;
+using Helpers;
 using System.Collections.Generic;
 using System.Linq;
 using TaleWorlds.CampaignSystem;
@@ -57,6 +61,11 @@ namespace BannerKings.Models.Vanilla
                 else if (proposerReligion != null && proposedReligion != null)
                 {
                     result.Add(50f, proposerReligion.Faith.GetFaithName());
+
+                    if (proposerReligion.HasDoctrine(DefaultDoctrines.Instance.AncestorWorship))
+                    {
+                        result.Add(50f, DefaultDoctrines.Instance.AncestorWorship.Name);
+                    }
                 }
 
                 if (!IsCoupleSuitableForMarriage(proposer, secondHero))
@@ -168,6 +177,19 @@ namespace BannerKings.Models.Vanilla
             if (hero.Spouse != null && hero.Spouse.IsDead)
             {
                 result.AddFactor(-0.2f, new TextObject("{=aML45YiV}Widow"));
+            }
+
+            if (hero.IsClanLeader())
+            {
+                result.AddFactor(BKSkillEffects.Instance.SpouseScore.GetPrimaryValue(
+                    hero.GetSkillValue(BKSkills.Instance.Lordship)) * 0.01f,
+                    BKSkills.Instance.Lordship.Name);
+            }
+            else
+            {
+                result.AddFactor(BKSkillEffects.Instance.SpouseScore.GetSecondaryValue(
+                    hero.Clan.Leader.GetSkillValue(BKSkills.Instance.Lordship)) * 0.01f,
+                    BKSkills.Instance.Lordship.Name);
             }
 
             return result;
@@ -287,7 +309,7 @@ namespace BannerKings.Models.Vanilla
             return score;
         }
 
-        private IEnumerable<Hero> DiscoverAncestors(Hero hero, int n)
+        public IEnumerable<Hero> DiscoverAncestors(Hero hero, int n)
         {
             if (hero == null)
             {

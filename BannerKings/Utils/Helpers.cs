@@ -2,12 +2,18 @@ using BannerKings.Managers.Diseases;
 using BannerKings.Managers.Titles;
 using BannerKings.Managers.Traits;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Xml;
+using BannerKings.Managers.Cultures;
+using BannerKings.Managers.Items;
+using BannerKings.Managers.Traits;
+using Helpers;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.AgentOrigins;
 using TaleWorlds.CampaignSystem.CharacterDevelopment;
+using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.Roster;
 using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.CampaignSystem.Settlements.Locations;
@@ -22,6 +28,26 @@ namespace BannerKings.Utils
 {
     public static class Helpers
     {
+        internal static XmlDocument CreateDocumentFromXmlFile(string xmlPath)
+        {
+            var xmlDocument = new XmlDocument();
+            var streamReader = new StreamReader(xmlPath);
+            var xml = streamReader.ReadToEnd();
+            xmlDocument.LoadXml(xml);
+            streamReader.Close();
+            return xmlDocument;
+        }
+
+        public static void ApplyFeat(FeatObject feat, PartyBase party, ref ExplainedNumber result)
+        {
+            if (PartyBaseHelper.HasFeat(party, feat))
+            {
+                if (feat.IncrementType == FeatObject.AdditionType.Add)
+                    result.Add(feat.EffectBonus, GameTexts.FindText("str_culture"));
+                else result.AddFactor(feat.EffectBonus, GameTexts.FindText("str_culture"));
+            }
+        }
+
         public static void AddTraitLevel(Hero hero, TraitObject trait, int level, float chance = 1f)
         {
             int current = hero.GetTraitLevel(trait);
@@ -231,98 +257,8 @@ namespace BannerKings.Utils
             return count;
         }
 
-        public static TextObject GetClassName(PopType type, CultureObject culture)
-        {
-            string cultureId = culture.StringId;
-            TextObject text;
-
-            if (type == PopType.Serfs)
-            {
-                switch (cultureId)
-                {
-                    case "empire":
-                        text = new TextObject("{=5Ym25L00}Servi");
-                        break;
-                    case "aserai" or "battania":
-                        text = new TextObject("{=vSMPBzue}Commoners");
-                        break;
-                    case "sturgia":
-                        text = new TextObject("{=f9tsDXWf}Kholops");
-                        break;
-                    default:
-                        text = new TextObject("Serfs");
-                        break;
-                }
-            }
-            else if (type == PopType.Tenants)
-            {
-                switch (cultureId)
-                {
-                    case "empire":
-                        text = new TextObject("{=GThkJp2s}Coloni");
-                        break;
-                    case "khuzait":
-                        text = new TextObject("{=tUzhQHAh}Nomads");
-                        break;
-                    case "sturgia":
-                        text = new TextObject("{=VviUbJTS}Smerdy");
-                        break;
-                    case "battania":
-                        text = new TextObject("{=TEYb57Wo}Freemen");
-                        break;
-                    default:
-                        text = new TextObject("{=h9UDWQcM}Tenants");
-                        break;
-                }
-            }
-            else if (type == PopType.Slaves)
-            {
-                switch (cultureId)
-                {
-                    case "empire":
-                        text = new TextObject("{=B9hAxxuo}Sclavi");
-                        break;
-                    case "sturgia":
-                        text = new TextObject("{=j6UDXO39}Thralls");
-                        break;
-                    case "aserai":
-                        text = new TextObject("{=TASERbwx}Mameluke");
-                        break;
-                    default:
-                        text = new TextObject("Slaves");
-                        break;
-                }
-            }
-            else if (type == PopType.Craftsmen)
-            {
-                switch (cultureId)
-                {
-                    case "empire":
-                        text = new TextObject("{=6hrBerHd}Cives");
-                        break;
-                    case "sturgia" or "battania" or "khuzait":
-                        text = new TextObject("{=2ogRjAuf}Artisans");
-                        break;
-                    default:
-                        text = new TextObject("Craftsmen");
-                        break;
-                }
-            }
-            else
-            {
-                switch (cultureId)
-                {
-                    case "vlandia":
-                        text = new TextObject("{=FVuW8Y4j}Ealdormen");
-                        break;
-                    default:
-                        text = new TextObject("Nobles");
-                        break;
-                }
-            }
-
-            return text;
-        }
+        public static TextObject GetClassName(PopType type, CultureObject culture) => 
+            DefaultPopulationNames.Instance.GetPopulationName(culture, type).Name;
 
         public static string GetConsumptionHint(ConsumptionType type)
         {
@@ -333,82 +269,6 @@ namespace BannerKings.Utils
                 ConsumptionType.General => new TextObject("{=NENnF6oJ}Satisfaction over availability of various products, including military equipment and horses.").ToString(),
                 _ => new TextObject("{=QJ1pjKxw}Satisfaction over availability of food types.").ToString()
             };
-        }
-        public static string GetTitlePrefix(TitleType type, CultureObject culture = null)
-        {
-            TextObject title = null;
-
-            if (culture != null)
-            {
-                switch (culture.StringId)
-                {
-                    case "sturgia" when type == TitleType.Kingdom:
-                        title = new TextObject("{=jz2SCLZS}Grand-Principality");
-                        break;
-                    case "sturgia" when type == TitleType.Dukedom:
-                        title = new TextObject("{=5rmKW4c9}Principality");
-                        break;
-                    case "sturgia" when type == TitleType.County:
-                        title = new TextObject("{=GHeUbN6f}Boyardom");
-                        break;
-                    case "sturgia" when type == TitleType.Barony:
-                        title = new TextObject("{=eUi8JOkv}Voivodeship");
-                        break;
-                    case "sturgia":
-                        title = new TextObject("{=wc51byvw}Gospodin");
-                        break;
-                    case "aserai" when type == TitleType.Kingdom:
-                        title = new TextObject("{=DQXH6NeY}Sultanate");
-                        break;
-                    case "aserai" when type == TitleType.Dukedom:
-                        title = new TextObject("{=MVjsWtcZ}Emirate");
-                        break;
-                    case "aserai":
-                        {
-                            if (type == TitleType.County)
-                            {
-                                title = new TextObject("{=V4ra7Por}Sheikhdom");
-                            }
-
-                            break;
-                        }
-                    case "empire":
-                        {
-                            if (type == TitleType.Empire)
-                            {
-                                title = new TextObject("{=dSSX7xRm}Imperium");
-                            }
-                            break;
-                        }
-                        /*case "battania":
-                        {
-                            if (government == GovernmentType.Tribal)
-                            {
-                                title = type switch
-                                {
-                                    TitleType.Kingdom => new TextObject("{=F0Y49kiT}High-Kingdom"),
-                                    TitleType.Dukedom => new TextObject("{=XsyHSqDV}Petty Kingdom"),
-                                    _ => title
-                                };
-                            }
-
-                            break;
-                        }*/
-                }
-            }
-
-            title ??= type switch
-            {
-                TitleType.Empire => new TextObject("Empire"),
-                TitleType.Kingdom => new TextObject("{=7x3HJ29f}Kingdom"),
-                TitleType.Dukedom => new TextObject("{=HtWGKBDF}Dukedom"),
-                TitleType.County => new TextObject("{=c6ggHVzS}County"),
-                TitleType.Barony => new TextObject("{=qOLmvS0B}Barony"),
-                _ => new TextObject("{=dwMA32rq}Lordship")
-            };
-
-
-            return title.ToString();
         }
 
         public static bool IsRetinueTroop(CharacterObject character)
@@ -448,26 +308,43 @@ namespace BannerKings.Utils
             return culture;
         }
 
+        public static List<ItemCategory> LuxuryCategories => new List<ItemCategory>(10)
+            {
+                DefaultItemCategories.Jewelry,
+                DefaultItemCategories.Velvet,          
+                DefaultItemCategories.WarHorse,
+                DefaultItemCategories.RangedWeapons4,
+                DefaultItemCategories.MeleeWeapons4,
+                DefaultItemCategories.HorseEquipment4,
+                DefaultItemCategories.RangedWeapons5,
+                DefaultItemCategories.MeleeWeapons5,
+                DefaultItemCategories.HorseEquipment5,
+                BKItemCategories.Instance.Spice,
+                BKItemCategories.Instance.Marble
+            };
+
+        public static List<ItemCategory> IndustrialCategories => new List<ItemCategory>(15)
+            {
+                DefaultItemCategories.Pottery,
+                DefaultItemCategories.Linen,
+                DefaultItemCategories.Wood,
+                DefaultItemCategories.Leather,
+                DefaultItemCategories.Oil,
+                DefaultItemCategories.RangedWeapons3,
+                DefaultItemCategories.MeleeWeapons3,
+                DefaultItemCategories.HorseEquipment3,
+                DefaultItemCategories.PackAnimal,
+                DefaultItemCategories.Fur,
+                BKItemCategories.Instance.Ink,
+                BKItemCategories.Instance.Limestone,
+                BKItemCategories.Instance.Papyrus
+            };
+
         public static ConsumptionType GetTradeGoodConsumptionType(ItemCategory item)
         {
-            var id = item.StringId;
-            if (item.Properties == Property.BonusToFoodStores)
-            {
-                return ConsumptionType.Food;
-            }
-
-            if (id is "silver" or "jewelry" or "spice" or "velvet" or "war_horse" ||
-                id.EndsWith("4") || id.EndsWith("5"))
-            {
-                return ConsumptionType.Luxury;
-            }
-
-            if (id is "wool" or "pottery" or "cotton" or "flax" or "linen" or "leather" or "tools"
-                || id.EndsWith("3") || id.Contains("horse"))
-            {
-                return ConsumptionType.Industrial;
-            }
-
+            if (LuxuryCategories.Contains(item)) return ConsumptionType.Luxury; 
+            else if (IndustrialCategories.Contains(item)) return ConsumptionType.Industrial;    
+            else if (item.Properties == Property.BonusToFoodStores) return ConsumptionType.Food;
             return ConsumptionType.General;
         }
 
@@ -496,42 +373,5 @@ namespace BannerKings.Utils
 
             return ConsumptionType.None;
         }
-
-        public static XmlDocument CreateDocumentFromXmlFile(string xmlPath)
-        {
-            var xmlDocument = new XmlDocument();
-            var streamReader = new StreamReader(xmlPath);
-            var xml = streamReader.ReadToEnd();
-            xmlDocument.LoadXml(xml);
-            streamReader.Close();
-            return xmlDocument;
-        }
-
-        public static Disease GetDiseaseFromTrait(TraitObject trait)
-        {
-            string traitId = trait.StringId;
-            foreach (Disease disease in DefaultDiseases.Instance.All)
-            {
-                if (disease.StringId == traitId.ToLower())
-                {
-                    return disease;
-                }
-            }
-            return null;
-        }
-
-        public static TraitObject GetTraitFromDisease(Disease disease)
-        {
-            string diseaseId = disease.StringId;
-            foreach (TraitObject traitObject in BKTraits.Instance.DiseaseTraits)
-            {
-                if (disease.StringId == traitObject.StringId.ToLower())
-                {
-                    return traitObject;
-                }
-            }
-            return null;
-        }
-
     }
 }

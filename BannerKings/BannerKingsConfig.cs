@@ -1,4 +1,9 @@
 ﻿using BannerKings.Behaviours.Criminality;
+using BannerKings.Behaviours.Diplomacy.Groups;
+using BannerKings.Behaviours.Diplomacy.Groups.Demands;
+using BannerKings.Behaviours.Diplomacy.Wars;
+using BannerKings.Campaign.Economy.Markets;
+using BannerKings.Campaign.Skills;
 using BannerKings.Managers;
 using BannerKings.Managers.AI;
 using BannerKings.Managers.Court;
@@ -18,7 +23,8 @@ using BannerKings.Managers.Institutions.Religions.Faiths;
 using BannerKings.Managers.Policies;
 using BannerKings.Managers.Populations;
 using BannerKings.Managers.Populations.Villages;
-using BannerKings.Managers.Titles;
+using BannerKings.Managers.Recruits;
+using BannerKings.Managers.Shipping;
 using BannerKings.Managers.Titles.Governments;
 using BannerKings.Managers.Titles.Laws;
 using BannerKings.Managers.Traits;
@@ -27,15 +33,15 @@ using BannerKings.Models.Vanilla;
 using System.Collections.Generic;
 using System.Linq;
 using TaleWorlds.CampaignSystem;
-using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.Settlements;
+using TaleWorlds.Library;
 
 namespace BannerKings
 {
     public class BannerKingsConfig
     {
-        public const string VersionNumber = "1.2.7.6";
-        public const string VersionEdition = "Standard";
+        public const string VersionNumber = "1.3.0.0";
+        public const string VersionEdition = "Release";
         public string VersionName => VersionNumber + VersionEdition;
         public const string EmpireCulture = "empire";
         public const string AseraiCulture = "aserai";
@@ -46,7 +52,9 @@ namespace BannerKings
 
         private List<ITypeInitializer> modInitializers = new List<ITypeInitializer>();
 
-        public bool FirstUse { get; private set; } = true;
+        public bool FirstUse { get; internal set; } = true;
+        public string TitlesGeneratorPath { get; set; } = BasePath.Name + "Modules/BannerKings/ModuleData/titles.xml";
+        public string RecruitsXmlPath { get; set; }
 
         public AIBehavior AI = new();
 
@@ -84,6 +92,7 @@ namespace BannerKings
             get; private set;
         }
 
+        public BKInterestGroupsModel InterestGroupsModel { get; } = new();
         public BKConstructionModel ConstructionModel { get; } = new();
         public BKInfluenceModel InfluenceModel { get; } = new();
         public BKTitleModel TitleModel { get; } = new();
@@ -97,22 +106,24 @@ namespace BannerKings
         public BKWorkshopModel WorkshopModel { get; } = new();
         public BKAdministrativeModel AdministrativeModel { get; } = new();
         public BKSmithingModel SmithingModel { get; } = new();
-        public BKCultureModel CultureModel { get; } = new();
-        public BKReligionModel ReligionModel { get; } = new();
-        public BKPietyModel PietyModel { get; } = new();
-        public BKVolunteerModel VolunteerModel { get; } = new();
-        public BKLegitimacyModel LegitimacyModel { get; } = new();
-        public BKGrowthModel GrowthModel { get; } = new();
+        public ICultureModel CultureModel { get; set; } = new BKCultureModel();
+        public IReligionModel ReligionModel { get; set; } = new BKReligionModel();
+        public BKVolunteerModel VolunteerModel { get; set; } = new BKVolunteerModel();
+        public LegitimacyModel LegitimacyModel { get; set; } = new BKLegitimacyModel();
+        public GrowthModel GrowthModel { get; set; } = new BKGrowthModel();
         public BKVillageProductionModel VillageProductionModel { get; } = new();
         public BKProsperityModel ProsperityModel { get; } = new();
         public BKTaxModel TaxModel { get; } = new();
         public BKEstatesModel EstatesModel { get; } = new();
         public BKMarriageModel MarriageModel { get; } = new();
         public BKArmyManagementModel ArmyManagementModel { get; } = new();
+        public BKWarModel WarModel { get; } = new();
         public BKCrimeModel CrimeModel { get; } = new();
         public BKCompanionPrices CompanionModel { get; } = new();
-        public BKKingodmDecsionModel KingdomDecisionModel { get; } = new();
         public IPartyNeedsModel PartyNeedsModel { get; } = new BKPartyNeedsModel();
+        public BKDiplomacyModel DiplomacyModel { get; } = new();
+        public BKKingdomDecisionModel KingdomDecisionModel { get; } = new();
+        public IMercenaryModel MercenaryModel { get; } = new MercenaryModel();
 
         static BannerKingsConfig()
         {
@@ -150,30 +161,41 @@ namespace BannerKings
             FirstUse = false;
         }
 
-        private void Initialize()
+        public void Initialize()
         {
+            BKSkillEffects.Instance.AddVanilla();
+            DefaultPopulationNames.Instance.Initialize();
+            DefaultTitleNames.Instance.Initialize();
             BKTraits.Instance.Initialize();
             DefaultVillageBuildings.Instance.Initialize();
             DefaultDivinities.Instance.Initialize();
-            DefaultFaiths.Instance.Initialize();
             DefaultDoctrines.Instance.Initialize();
             DefaultLanguages.Instance.Initialize();
             DefaultBookTypes.Instance.Initialize();
             DefaultLifestyles.Instance.Initialize();
             DefaultDemesneLaws.Instance.Initialize();
+            DefaultFaithGroups.Instance.Initialize();
+            DefaultFaiths.Instance.Initialize();
             DefaultReligions.Instance.Initialize();
             DefaultCouncilTasks.Instance.Initialize();
             DefaultCouncilPositions.Instance.Initialize();
+            DefaultCasusBelli.Instance.Initialize();
+            BKTraits.Instance.Initialize();
+            DefaultDemands.Instance.Initialize();
+            DefaultRadicalGroups.Instance.Initialize();
+            DefaultInterestGroup.Instance.Initialize();
+            DefaultCriminalSentences.Instance.Initialize();
             DefaultCrimes.Instance.Initialize();
             DefaultCriminalSentences.Instance.Initialize();
-            DefaultCourtExpenses.Instance.Initialize();
-            DefaultPopulationNames.Instance.Initialize();
-            DefaultTitleNames.Instance.Initialize();
+            DefaultCourtExpenses.Instance.Initialize();   
             DefaultSuccessions.Instance.Initialize();
             DefaultInheritances.Instance.Initialize();
             DefaultGenderLaws.Instance.Initialize();
             DefaultGovernments.Instance.Initialize();
             DefaultContractAspects.Instance.Initialize();
+            DefaultShippingLanes.Instance.Initialize();
+            DefaultMarketGroups.Instance.Initialize();
+            DefaultRecruitSpawns.Instance.Initialize();
             DefaultDiseases.Instance.Initialize();
             foreach (ITypeInitializer init in modInitializers)
             {
@@ -185,12 +207,12 @@ namespace BannerKings
         {
             Initialize();
 
-            PopulationManager = new PopulationManager(new Dictionary<Settlement, PopulationData>(), new List<MobileParty>());
-            PolicyManager = new PolicyManager(new Dictionary<Settlement, List<BannerKingsDecision>>(), new Dictionary<Settlement, List<BannerKingsPolicy>>());
-            TitleManager = new TitleManager(new Dictionary<FeudalTitle, Hero>(), new Dictionary<Kingdom, FeudalTitle>());
-            TitleGenerator.InitializeTitles();
-            CourtManager = new CourtManager(new Dictionary<Clan, CouncilData>());
             ReligionsManager = new ReligionsManager();
+            PopulationManager = new PopulationManager(new Dictionary<Settlement, PopulationData>());
+            PolicyManager = new PolicyManager(new Dictionary<Settlement, List<BannerKingsDecision>>(), new Dictionary<Settlement, List<BannerKingsPolicy>>());
+            TitleManager = new TitleManager();
+            TitleGenerator.InitializeTitles();
+            CourtManager = new CourtManager(new Dictionary<Clan, CouncilData>());          
             EducationManager = new EducationManager();
             InnovationsManager = new InnovationsManager();
             GoalManager = new GoalManager();
@@ -200,11 +222,11 @@ namespace BannerKings
         {
             Initialize();
 
+            ReligionsManager = religions ?? new ReligionsManager();
             PopulationManager = populationManager;
             PolicyManager = policyManager;
             TitleManager = titleManager;
-            CourtManager = court;
-            ReligionsManager = religions ?? new ReligionsManager();
+            CourtManager = court;     
             EducationManager = educations ?? new EducationManager();
             InnovationsManager = innovations ?? new InnovationsManager();
             GoalManager = goals ?? new GoalManager();

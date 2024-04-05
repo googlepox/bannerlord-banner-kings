@@ -60,23 +60,35 @@ namespace BannerKings.Settings
         [SettingPropertyGroup("{=2oJQ4Snn}Economy")]
         public bool DismissParties { get; set; } = true;
 
-        [SettingPropertyFloatingInteger("{=!}Base Wages", minValue: 0.5f, maxValue: 2f, "#0%", RequireRestart = false, HintText = "{=!}Modifier for base wages of soldiers, changing their daily upkeep but also their recruitment cost, calculated on their base wage. May SEVERELY impact AI and it's ability to recruit/keep troops. Default: 100%.")]
+        [SettingPropertyFloatingInteger("{=D0UNUOgy}Base Wages", minValue: 0.5f, maxValue: 2f, "#0%", RequireRestart = false, HintText = "{=Jabak5nx}Modifier for base wages of soldiers, changing their daily upkeep but also their recruitment cost, calculated on their base wage. May SEVERELY impact AI and it's ability to recruit/keep troops. Default: 100%.")]
         [SettingPropertyGroup("{=2oJQ4Snn}Economy")]
         public float BaseWage { get; set; } = 1f;
 
-        [SettingPropertyFloatingInteger("{=!}Party Size Scaling", minValue: 1f, maxValue: 3f, "#0%", RequireRestart = false, HintText = "{=!}The scale of party sizes on the map. Applies in half to parties of heroes not leading their clan. Vanilla is 100%. Default: 200%.")]
+        [SettingPropertyFloatingInteger("{=Kjb25TsU}Loot Scale", minValue: 0.2f, maxValue: 1f, "#0%", RequireRestart = false, HintText = "{=g9Sa4rmA}The scale of loot dropped by troops. When under 100%, items will randomly be eliminated from the loot pool. Vanilla is 100%. Default: 50%.")]
+        [SettingPropertyGroup("{=2oJQ4Snn}Economy")]
+        public float LootScale { get; set; } = 0.5f;
+
+        [SettingPropertyFloatingInteger("{=smqPaUHR}Clan Renown Scaling", minValue: 1f, maxValue: 10f, "#0%", RequireRestart = false, HintText = "{=G08wtvco}The scale of renown points required for clans to level up in tier. Vanilla is 100%. Default: 300%.")]
+        [SettingPropertyGroup("{=P8UecnYf}Balancing")]
+        public float ClanRenown { get; set; } = 3f;
+
+        [SettingPropertyFloatingInteger("{=mSLQa207}Party Size Scaling", minValue: 1f, maxValue: 3f, "#0%", RequireRestart = false, HintText = "{=RszZwN4X}The scale of party sizes on the map. Applies in half to parties of heroes not leading their clan. Vanilla is 100%. Default: 200%.")]
         [SettingPropertyGroup("{=P8UecnYf}Balancing")]
         public float PartySizes { get; set; } = 2f;
 
-        [SettingProperty("{=!}Alternative Leveling", RequireRestart = false, HintText = "{=!}An alternate skill leveling progression. Skills will require a higher base xp since level 1, but will scale less aggressively. The result should be more consitent xp across all levels, slower at the beginning but faster near the end. Default: true.")]
+        [SettingProperty("{=QtuWPLe1}Alternative Leveling", RequireRestart = false, HintText = "{=LEE0ixHk}An alternate skill leveling progression. Skills will require a higher base xp since level 1, but will scale less aggressively. The result should be more consitent xp across all levels, slower at the beginning but faster near the end. Default: true.")]
         [SettingPropertyGroup("{=P8UecnYf}Balancing")]
         public bool AlternateLeveling { get; set; } = true;
 
-        [SettingPropertyFloatingInteger("{=!}Army Cohesion Boost", minValue: 0f, maxValue: 0.8f, "#0%", RequireRestart = false, HintText = "{=!}Cohesion boost to armies to they last longer, to counter balance the presence of more parties. Vanilla is 0%, 50% decreases cohesion loss by half. Default: 50%.")]
+        [SettingPropertyFloatingInteger("{=iZcJtDkH}World Companions Limit", minValue: 0.5f, maxValue: 1f, "#0%", RequireRestart = false, HintText = "{=6m4y9ujC}The max limit of wanderers in the world, available at taverns. The limit is relative to all existing cities in the map. Vanilla is 60%, and amounts to less than 1 wanderer per town, BK amounts to 1 per town. Default: 100%.")]
+        [SettingPropertyGroup("{=P8UecnYf}Balancing")]
+        public float WorldCompanions { get; set; } = 1f;
+
+        [SettingPropertyFloatingInteger("{=hpWaDjNM}Army Cohesion Boost", minValue: 0f, maxValue: 0.8f, "#0%", RequireRestart = false, HintText = "{=AW5mYHB5}Cohesion boost to armies to they last longer, to counter balance the presence of more parties. Vanilla is 0%, 50% decreases cohesion loss by half. Default: 50%.")]
         [SettingPropertyGroup("{=P8UecnYf}Balancing")]
         public float CohesionBoost { get; set; } = 0.5f;
 
-        [SettingPropertyFloatingInteger("{=2yDhJfgh}Troop Upgrade Xp", minValue: 1f, maxValue: 10f, "#0%", RequireRestart = false, HintText = "{=xvNKsFbW}How much Xp troops need to upgrade. Vanilla is 100%. Default: 200%.")]
+        [SettingPropertyFloatingInteger("{=2yDhJfgh}Troop Upgrade Xp", minValue: 1f, maxValue: 20f, "#0%", RequireRestart = false, HintText = "{=xvNKsFbW}How much Xp troops need to upgrade. Vanilla is 100%. Default: 200%.")]
         [SettingPropertyGroup("{=P8UecnYf}Balancing")]
         public float TroopUpgradeXp { get; set; } = 2f;
 
@@ -96,14 +108,10 @@ namespace BannerKings.Settings
         [SettingPropertyGroup("{=P8UecnYf}Balancing")]
         public bool CraftingWaitingTime { get; set; } = true;
 
-        [SettingProperty("{=b4hNMeGx}Diplomacy Changes", RequireRestart = true, HintText = "{=2YgM5mR1}Changes to AI evaluation of declaring war such as not calling wars when the entire kingdom is broke. Slows down the game pace. Default: True.")]
-        [SettingPropertyGroup("{=P8UecnYf}Balancing")]
-        public bool DiplomacyChanges { get; set; } = true;
-
         [SettingPropertyFloatingInteger("{=iBLGdG1Y}Party Supplies", minValue: 0f, maxValue: 2f, "#0%", RequireRestart = false, 
             HintText = "{=uURHROGF}Affects the party supplies requirement factor. 0% means the feature is functionally disabled. 100% is the standard rate of items consumption, 200% means doube the rate, resulting in more expensive parties. May affect AI party limit sizes. Default: 100%.")]
         [SettingPropertyGroup("{=P8UecnYf}Balancing")]
-        public float PartySuppliesFactor { get; set; } = 1f;
+        public float PartySuppliesFactor { get; set; } = 0.5f;
 
         [SettingProperty("{=iBLGdG1Y}Reset Party Supplies Demand", RequireRestart = false, HintText = "{=uURHROGF}Party supply demands stack each day. Enabling this setting forgets the old demands of the party.")]
         [SettingPropertyGroup("{=P8UecnYf}Balancing")]
@@ -138,8 +146,8 @@ namespace BannerKings.Settings
         [SettingPropertyInteger("{=00bG9Ube}Bandit Parties Limit", 150, 600, "{=4tnEdJNu}0 Parties ",
             Order = 1,
             RequireRestart = false,
-            HintText = "{=O3MXc6GM}Maximum number of bandit parties in the world map. Vanilla is 150. Default: 300.")]
+            HintText = "{=gDK2LRib}Maximum number of bandit parties in the world map. Vanilla is 150. Default: 150.")]
         [SettingPropertyGroup("{=k2Vw7iNm}Bandits")]
-        public int BanditPartiesLimit { get; set; } = 300;
+        public int BanditPartiesLimit { get; set; } = 150;
     }
 }

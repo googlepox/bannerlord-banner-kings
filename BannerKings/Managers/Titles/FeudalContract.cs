@@ -19,6 +19,7 @@ namespace BannerKings.Managers.Titles
             Inheritance = inheritance;
             GenderLaw = genderLaw;
             DemesneLaws = new List<DemesneLaw>(8);
+            ContractAspects = new List<ContractAspect>();
         }
 
         [SaveableProperty(1)] public Dictionary<FeudalDuties, float> Duties { get; set; }
@@ -28,14 +29,18 @@ namespace BannerKings.Managers.Titles
         [SaveableProperty(5)] public Inheritance Inheritance { get; private set; }
         [SaveableProperty(6)] public GenderLaw GenderLaw { get; private set; }
         [SaveableProperty(7)] public List<DemesneLaw> DemesneLaws { get; private set; }
-        public List<ContractAspect> ContractAspects { get; private set; }
+        [SaveableProperty(8)] public List<ContractAspect> ContractAspects { get; private set; }
 
-        public void PostInitialize(Kingdom kingdom)
+        public void PostInitialize(Kingdom kingdom, CultureObject culture)
         {
-            Government ??= DefaultGovernments.Instance.GetKingdomIdealSuccession(kingdom);
-            Succession ??= DefaultSuccessions.Instance.GetKingdomIdealSuccession(kingdom, Government);
-            Inheritance ??= DefaultInheritances.Instance.GetKingdomIdealInheritance(kingdom, Government);
-            GenderLaw ??= DefaultGenderLaws.Instance.GetKingdomIdealGenderLaw(kingdom, Government);
+            string id;
+            if (kingdom != null) id = kingdom.StringId;
+            else id = culture.StringId;
+
+            Government ??= DefaultGovernments.Instance.GetKingdomIdealGovernment(id);
+            Succession ??= DefaultSuccessions.Instance.GetKingdomIdealSuccession(id, Government);
+            Inheritance ??= DefaultInheritances.Instance.GetKingdomIdealInheritance(id, Government);
+            GenderLaw ??= DefaultGenderLaws.Instance.GetKingdomIdealGenderLaw(id, Government);
             Government.PostInitialize();
             Succession.PostInitialize();
             Inheritance.PostInitialize();
@@ -47,7 +52,20 @@ namespace BannerKings.Managers.Titles
                     type.EgalitarianWeight, type.OligarchicWeight, type.InfluenceCost, type.Culture, type.IsAdequateForKingdom);
             }
 
-            //ContractAspects ??= DefaultContractAspects.Instance.GetIdealKingdomAspects(kingdom, Government);
+            if (ContractAspects == null) ContractAspects = new List<ContractAspect>();
+            else
+            {
+                foreach (var aspect in ContractAspects)
+                {
+                    aspect.PostInitialize();
+                }
+            }
+
+            foreach (var aspect in DefaultContractAspects.Instance.GetIdealKingdomAspects(id, Government))
+            {
+                if (!ContractAspects.Any(x => x.StringId == aspect.StringId))
+                    ContractAspects.Add(aspect);
+            }
         }
 
         public bool HasContractAspect(ContractAspect aspect)  

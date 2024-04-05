@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.Drawing;
 using BannerKings.Managers.Skills;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Actions;
@@ -9,7 +8,7 @@ using TaleWorlds.Localization;
 
 namespace BannerKings.Managers.Institutions.Religions.Faiths.Rites
 {
-    public class Sacrifice : ContextualRite
+    public class Sacrifice : SacrificeRite
     {
         private Hero input;
 
@@ -27,8 +26,11 @@ namespace BannerKings.Managers.Institutions.Religions.Faiths.Rites
                 if (element.Character.IsHero)
                 {
                     var hero = element.Character.HeroObject;
-                    TextObject description;
-                    bool available = MeetsCondition(hero, out description);
+                    input = hero;
+                    TextObject description = new TextObject("{=tuDyHJmq}The sacrifice of {HERO} will yield {PIETY} piety.")
+                        .SetTextVariable("HERO", input.Name)
+                        .SetTextVariable("PIETY", GetPietyReward());
+                    bool available = CanHeroBeSacrificed(executor, hero);
                     options.Add(new InquiryElement(hero, 
                         hero.Name.ToString(),
                         new ImageIdentifier(CampaignUIHelper.GetCharacterCode(element.Character)),
@@ -37,17 +39,25 @@ namespace BannerKings.Managers.Institutions.Religions.Faiths.Rites
                 }
             }
 
+            input = null;
+
             MBInformationManager.ShowMultiSelectionInquiry(
                 new MultiSelectionInquiryData(
                     GetName().ToString(),
                     GetDescription().ToString(),
-                    options, false, 1, GameTexts.FindText("str_done").ToString(), string.Empty,
+                    options, 
+                    false, 
+                    1,
+                    1, 
+                    GameTexts.FindText("str_done").ToString(), string.Empty,
                     delegate(List<InquiryElement> x)
                     {
                         input = (Hero?) x[0].Identifier;
                         SetDialogue();
                     }, null, string.Empty));
         }
+
+        public override bool CanHeroBeSacrificed(Hero executor, Hero hero) => true;
 
         public override void Complete(Hero actionTaker)
         {
@@ -129,16 +139,7 @@ namespace BannerKings.Managers.Institutions.Religions.Faiths.Rites
             return result;
         }
 
-        public override float GetPietyReward()
-        {
-            var renown = 100f;
-            if (input.Clan != null)
-            {
-                renown = input.Clan.Renown / 10f;
-            }
-
-            return renown;
-        }
+        public override float GetPietyReward() => CalculateSacrificeReward(input);
 
         public override void SetDialogue()
         {
@@ -153,6 +154,17 @@ namespace BannerKings.Managers.Institutions.Religions.Faiths.Rites
         {
             return new TextObject("{=qBDbqpf3}May be performed every {YEARS} years\nRequires a lord from an enemy faction")
                 .SetTextVariable("YEARS", GetTimeInterval(hero));
+        }
+
+        public override int CalculateSacrificeReward(Hero sacrifice)
+        {
+            var renown = 100f;
+            if (input.Clan != null)
+            {
+                renown = sacrifice.Clan.Renown / 10f;
+            }
+
+            return (int)renown;
         }
     }
 }

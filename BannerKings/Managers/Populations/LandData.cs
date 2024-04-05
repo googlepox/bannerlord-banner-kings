@@ -42,8 +42,8 @@ namespace BannerKings.Managers.Populations
 
         public float[] Composition => composition;
 
-        public TerrainType Terrain => Campaign.Current.MapSceneWrapper != null ? 
-            Campaign.Current.MapSceneWrapper.GetTerrainTypeAtPosition(data.Settlement.Position2D) : TerrainType.Plain;
+        public TerrainType Terrain => TaleWorlds.CampaignSystem.Campaign.Current.MapSceneWrapper != null ? 
+            TaleWorlds.CampaignSystem.Campaign.Current.MapSceneWrapper.GetTerrainTypeAtPosition(data.Settlement.Position2D) : TerrainType.Plain;
 
         public bool IsExcessLaborExpandingAcreage
         {
@@ -297,8 +297,8 @@ namespace BannerKings.Managers.Populations
         {
             var result = type switch
             {
-                "farmland" => 0.017f,
-                "pasture" => 0.0065f,
+                "farmland" => 0.0155f,
+                "pasture" => 0.0062f,
                 _ => 0.0012f
             };
 
@@ -328,6 +328,12 @@ namespace BannerKings.Managers.Populations
                         {
                             result *= 1.1f;
                         }
+                    }
+
+                    if (type == "woodland" && BannerKingsConfig.Instance.ReligionsManager
+                        .HasBlessing(owner, DefaultDivinities.Instance.Hirvi, ownerReligion))
+                    {
+                        result *= 1.5f;
                     }
                 }
             }

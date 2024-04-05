@@ -12,6 +12,8 @@ namespace BannerKings.Utils
         public static uint COLOR_LIGHT_RED = 13582400;
         public static uint COLOR_LIGHT_YELLOW = 16246615;
 
+        public static string INFLUENCE_ICON = "<img src=\"General\\Icons\\Influence@2x\" extend=\"7\">";
+        public static string PIETY_ICON = "<img src=\"SPGeneral\\MapOverlay\\Settlement\\icon_morale_big\" extend=\"7\">";
         public static TextObject GetConsumptionSatisfactionText(ConsumptionType type)
         {
             if (type == ConsumptionType.Luxury)
@@ -32,6 +34,9 @@ namespace BannerKings.Utils
             return new TextObject("{=HoU7ZObZ}General Goods");
         }
 
+        public static TextObject GetTitlePrefix(TitleType type, CultureObject culture = null) =>
+            DefaultTitleNames.Instance.GetTitleName(culture, type).Description;
+
         public static TextObject GetTitleHonorary(TitleType type, bool female, CultureObject culture = null)
         {
             var name = DefaultTitleNames.Instance.GetTitleName(culture, type);
@@ -41,7 +46,7 @@ namespace BannerKings.Utils
         public static TextObject GetKnightTitle(CultureObject culture, bool female, bool plural)
         {
             var name = DefaultTitleNames.Instance.GetKnightName(culture);
-            return female ? name.Female : name.Name;
+            return plural ? name.Description : (female ? name.Female : name.Name);
         }
 
         public static TextObject GetPrinceTitles(bool female, CultureObject culture = null)

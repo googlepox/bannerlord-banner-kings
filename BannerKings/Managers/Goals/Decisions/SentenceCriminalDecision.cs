@@ -39,7 +39,7 @@ namespace BannerKings.Managers.Goals.Decisions
         {
             failedReasons = new List<TextObject>();
 
-            BKCriminalityBehavior behavior = Campaign.Current.GetCampaignBehavior<BKCriminalityBehavior>();
+            BKCriminalityBehavior behavior = TaleWorlds.CampaignSystem.Campaign.Current.GetCampaignBehavior<BKCriminalityBehavior>();
             Dictionary<Hero, List<Crime>> criminals = behavior.GetCriminals(GetFulfiller());
             if (criminals.Count == 0)
             {
@@ -52,7 +52,7 @@ namespace BannerKings.Managers.Goals.Decisions
         public override void ShowInquiry()
         {
             var crimes = new List<InquiryElement>();
-            BKCriminalityBehavior behavior = Campaign.Current.GetCampaignBehavior<BKCriminalityBehavior>();
+            BKCriminalityBehavior behavior = TaleWorlds.CampaignSystem.Campaign.Current.GetCampaignBehavior<BKCriminalityBehavior>();
             Dictionary<Hero, List<Crime>> criminals = behavior.GetCriminals(GetFulfiller());
 
             foreach (var pair in criminals)
@@ -80,6 +80,7 @@ namespace BannerKings.Managers.Goals.Decisions
                 crimes,
                 true,
                 1,
+                1,
                 GameTexts.FindText("str_done").ToString(),
                 GameTexts.FindText("str_cancel").ToString(),
                 delegate (List<InquiryElement> crimeOptions)
@@ -106,7 +107,8 @@ namespace BannerKings.Managers.Goals.Decisions
                         new TextObject("{=GaQTC0YT}{HERO} will be sentenced for the crime of {CRIME}. Tyrannical sentences will impact your standing with your peers.").ToString(),
                         sentences,
                         true,
-                       1,
+                        1,
+                        1,
                         GameTexts.FindText("str_done").ToString(),
                         GameTexts.FindText("str_cancel").ToString(),
                         delegate (List<InquiryElement> sentenceOptions)

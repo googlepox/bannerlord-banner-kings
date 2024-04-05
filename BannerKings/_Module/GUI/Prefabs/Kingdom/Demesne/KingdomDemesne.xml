@@ -15,6 +15,9 @@
 								<ListPanel Id="VerticalList" WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren" StackLayout.LayoutMethod="VerticalBottomToTop">
 									<Children>
 									
+										<Standard.DropdownWithHorizontalControl Parameter.SelectorDataSource="{KingdomSelector}" MarginTop="10"
+																						HorizontalAlignment="Center" />
+									
 										<RichTextWidget WidthSizePolicy="CoverChildren" HeightSizePolicy="CoverChildren" MarginTop="25"
 														HorizontalAlignment="Center" Brush="Clan.Leader.Text" Brush.FontSize="32" Text="@StructureText"
 														MarginBottom="30" />
@@ -22,7 +25,7 @@
 										<ListPanel WidthSizePolicy="CoverChildren" HeightSizePolicy="Fixed" HorizontalAlignment="Center" SuggestedHeight="200"
 												   VerticalAlignment="Center" StackLayout.LayoutMethod="HorizontalLeftToRight" MarginTop="30" MarginBottom="30" DoNotAcceptEvents="false">
 											<Children>
-											
+
 												<ListPanel WidthSizePolicy="CoverChildren" HeightSizePolicy="CoverChildren" HorizontalAlignment="Center" SuggestedHeight="150"
 														   VerticalAlignment="Bottom" StackLayout.LayoutMethod="VerticalBottomToTop" MarginRight="15" MarginLeft="15" DoNotAcceptEvents="false">
 													<Children>
@@ -31,14 +34,14 @@
 																MarginBottom="5" VerticalAlignment="Top"/>
 												
 														<ToggleButtonWidget DoNotPassEventsToChildren="true" WidthSizePolicy="Fixed" HeightSizePolicy="StretchToParent" 
-																VerticalAlignment="Bottom" SuggestedWidth="171" SuggestedHeight="100" MarginRight="2" MarginLeft="2"
+																VerticalAlignment="Bottom" SuggestedWidth="300" SuggestedHeight="100" MarginRight="2" MarginLeft="2"
 																HorizontalAlignment="Center" Brush="TownManagement.Governor" UpdateChildrenStates="true"
-																GamepadNavigationIndex="0" IsEnabled="true">
+																GamepadNavigationIndex="0" IsEnabled="true" Command.Click="ChangeGovernment">
 															<Children>
 																<RichTextWidget WidthSizePolicy="CoverChildren" HeightSizePolicy="CoverChildren"
 																		HorizontalAlignment="Center" Brush="Clan.Leader.Text" Brush.FontSize="32" Text="@GovernmentName"
 																		VerticalAlignment="Center" MarginRight="15" MarginLeft="15"/>
-																<HintWidget DataSource="{Hint}" WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
+																<HintWidget DataSource="{GovernmentHint}" WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
 																			Command.HoverBegin="ExecuteBeginHint" Command.HoverEnd="ExecuteEndHint" />
 
 															</Children>
@@ -54,14 +57,14 @@
 																MarginBottom="5" VerticalAlignment="Top"/>
 												
 														<ToggleButtonWidget DoNotPassEventsToChildren="true" WidthSizePolicy="Fixed" HeightSizePolicy="StretchToParent" 
-																VerticalAlignment="Bottom" SuggestedWidth="171" SuggestedHeight="100" MarginRight="2" MarginLeft="2"
+																VerticalAlignment="Bottom" SuggestedWidth="300" SuggestedHeight="100" MarginRight="2" MarginLeft="2"
 																HorizontalAlignment="Center" Brush="TownManagement.Governor" UpdateChildrenStates="true"
-																GamepadNavigationIndex="0" IsEnabled="true">
+																GamepadNavigationIndex="0" IsEnabled="true" Command.Click="ChangeSuccession">
 															<Children>
 																<RichTextWidget WidthSizePolicy="CoverChildren" HeightSizePolicy="CoverChildren"
-																		HorizontalAlignment="Center" Brush="Clan.Leader.Text" Brush.FontSize="32" Text="@SuccessionTName"
+																		HorizontalAlignment="Center" Brush="Clan.Leader.Text" Brush.FontSize="32" Text="@SuccessionName"
 																		VerticalAlignment="Center" MarginRight="15" MarginLeft="15"/>
-																<HintWidget DataSource="{Hint}" WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
+																<HintWidget DataSource="{SuccessionHint}" WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
 																			Command.HoverBegin="ExecuteBeginHint" Command.HoverEnd="ExecuteEndHint" />
 
 															</Children>
@@ -77,14 +80,14 @@
 																MarginBottom="5" VerticalAlignment="Top"/>
 												
 														<ToggleButtonWidget DoNotPassEventsToChildren="true" WidthSizePolicy="Fixed" HeightSizePolicy="StretchToParent" 
-																VerticalAlignment="Bottom" SuggestedWidth="171" SuggestedHeight="100" MarginRight="2" MarginLeft="2"
+																VerticalAlignment="Bottom" SuggestedWidth="300" SuggestedHeight="100" MarginRight="2" MarginLeft="2"
 																HorizontalAlignment="Center" Brush="TownManagement.Governor" UpdateChildrenStates="true"
-																GamepadNavigationIndex="0" IsEnabled="true">
+																GamepadNavigationIndex="0" IsEnabled="true" Command.Click="ChangeInheritance">
 															<Children>
 																<RichTextWidget WidthSizePolicy="CoverChildren" HeightSizePolicy="CoverChildren"
 																		HorizontalAlignment="Center" Brush="Clan.Leader.Text" Brush.FontSize="32" Text="@InheritanceName"
 																		VerticalAlignment="Center" MarginRight="15" MarginLeft="15"/>
-																<HintWidget DataSource="{Hint}" WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
+																<HintWidget DataSource="{InheritanceHint}" WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
 																			Command.HoverBegin="ExecuteBeginHint" Command.HoverEnd="ExecuteEndHint" />
 
 															</Children>
@@ -100,12 +103,42 @@
 																MarginBottom="5" VerticalAlignment="Top"/>
 												
 														<ToggleButtonWidget DoNotPassEventsToChildren="true" WidthSizePolicy="Fixed" HeightSizePolicy="StretchToParent" 
-																VerticalAlignment="Bottom" SuggestedWidth="171" SuggestedHeight="100" MarginRight="2" MarginLeft="2"
+																VerticalAlignment="Bottom" SuggestedWidth="300" SuggestedHeight="100" MarginRight="2" MarginLeft="2"
 																HorizontalAlignment="Center" Brush="TownManagement.Governor" UpdateChildrenStates="true"
-																GamepadNavigationIndex="0" IsEnabled="true">
+																GamepadNavigationIndex="0" IsEnabled="true" Command.Click="ChangeGender">
 															<Children>
 																<RichTextWidget WidthSizePolicy="CoverChildren" HeightSizePolicy="CoverChildren"
 																		HorizontalAlignment="Center" Brush="Clan.Leader.Text" Brush.FontSize="32" Text="@GenderLawName"
+																		VerticalAlignment="Center" MarginRight="15" MarginLeft="15"/>
+																<HintWidget DataSource="{GenderLawHint}" WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
+																			Command.HoverBegin="ExecuteBeginHint" Command.HoverEnd="ExecuteEndHint" />
+
+															</Children>
+														</ToggleButtonWidget>
+													</Children>
+												</ListPanel>
+												
+											</Children>
+										</ListPanel>
+										
+										<ListPanel DataSource="{Aspects}" WidthSizePolicy="CoverChildren" HeightSizePolicy="Fixed" HorizontalAlignment="Center" SuggestedHeight="200"
+												   VerticalAlignment="Center" StackLayout.LayoutMethod="HorizontalLeftToRight" MarginTop="30" MarginBottom="30" DoNotAcceptEvents="false">
+											<ItemTemplate>
+												
+												<ListPanel WidthSizePolicy="CoverChildren" HeightSizePolicy="CoverChildren" HorizontalAlignment="Center" SuggestedHeight="150"
+														   VerticalAlignment="Bottom" StackLayout.LayoutMethod="VerticalBottomToTop"  MarginRight="15" MarginLeft="15" DoNotAcceptEvents="false">
+													<Children>
+														<RichTextWidget WidthSizePolicy="CoverChildren" HeightSizePolicy="CoverChildren"
+																HorizontalAlignment="Center" Brush="Clan.Leader.Text" Brush.FontSize="22" Text="@Definition"
+																MarginBottom="5" VerticalAlignment="Top"/>
+												
+														<ToggleButtonWidget DoNotPassEventsToChildren="true" WidthSizePolicy="Fixed" HeightSizePolicy="StretchToParent" 
+																VerticalAlignment="Bottom" SuggestedWidth="300" SuggestedHeight="100" MarginRight="2" MarginLeft="2"
+																HorizontalAlignment="Center" Brush="TownManagement.Governor" UpdateChildrenStates="true"
+																GamepadNavigationIndex="0" IsEnabled="true" Command.Click="ChangeGender">
+															<Children>
+																<RichTextWidget WidthSizePolicy="CoverChildren" HeightSizePolicy="CoverChildren"
+																		HorizontalAlignment="Center" Brush="Clan.Leader.Text" Brush.FontSize="32" Text="@Value"
 																		VerticalAlignment="Center" MarginRight="15" MarginLeft="15"/>
 																<HintWidget DataSource="{Hint}" WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
 																			Command.HoverBegin="ExecuteBeginHint" Command.HoverEnd="ExecuteEndHint" />
@@ -115,7 +148,7 @@
 													</Children>
 												</ListPanel>
 												
-											</Children>
+											</ItemTemplate>
 										</ListPanel>
 										
 									

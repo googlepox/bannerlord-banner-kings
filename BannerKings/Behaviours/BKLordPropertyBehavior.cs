@@ -1,9 +1,6 @@
 using System.Linq;
-using HarmonyLib;
-using SandBox.CampaignBehaviors;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Actions;
-using TaleWorlds.CampaignSystem.CampaignBehaviors;
 using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.Party.PartyComponents;
 using TaleWorlds.CampaignSystem.Settlements;
@@ -60,7 +57,7 @@ namespace BannerKings.Behaviours
                     var random = target.Town.Workshops.GetRandomElement();
                     if (random != null)
                     {
-                        float workshopCost = BannerKingsConfig.Instance.WorkshopModel.GetBuyingCostForPlayer(random);
+                        float workshopCost = BannerKingsConfig.Instance.WorkshopModel.GetCostForPlayer(random);
                         if (ShouldHaveWorkshop(lord, (int)workshopCost))
                         {
 
@@ -103,9 +100,10 @@ namespace BannerKings.Behaviours
                         .SetTextVariable("TOWN", wk.Settlement.Name)
                         .ToString()));
             }
-            ChangeOwnerOfWorkshopAction.ApplyByTrade(wk, buyer, wk.WorkshopType,
-                Campaign.Current.Models.WorkshopModel.GetInitialCapital(1), true,
-                (int)cost);
+
+            GiveGoldAction.ApplyBetweenCharacters(buyer, wk.Owner, (int)cost, false);
+            CampaignEventDispatcher.Instance.OnWorkshopOwnerChanged(wk, buyer);
+            wk.ChangeOwnerOfWorkshop(buyer, wk.WorkshopType, TaleWorlds.CampaignSystem.Campaign.Current.Models.WorkshopModel.InitialCapital);
         }
 
         private bool ShouldHaveCaravan(Hero hero, int cost)
@@ -122,41 +120,7 @@ namespace BannerKings.Behaviours
         private bool ShouldHaveWorkshop(Hero hero, int cost)
         {
             return hero == hero.Clan.Leader && hero.Clan.Gold >= (int) (cost * 2f) &&
-                   hero.OwnedCaravans.Count < 1 + hero.Clan.Tier;
-        }
-    }
-
-    namespace Patches
-    {
-        [HarmonyPatch(typeof(CaravansCampaignBehavior))]
-        internal class CaravansCampaignBehaviorPatches
-        {
-            [HarmonyPrefix]
-            [HarmonyPatch("SpawnCaravan", MethodType.Normal)]
-            private static bool SpawnCaravan(Hero hero, bool initialSpawn = false)
-            {
-                return hero.CurrentSettlement is {IsTown: true};
-            }
-        }
-
-        [HarmonyPatch(typeof(LordConversationsCampaignBehavior))]
-        internal class LordConversationsCampaignBehaviorPatches
-        {
-            [HarmonyPostfix]
-            [HarmonyPatch("SmallCaravanFormingCost", MethodType.Getter)]
-            private static void SmallCaravanFormingCost(ref int __result)
-            {
-                __result = (int) BannerKingsConfig.Instance.EconomyModel
-                    .GetCaravanPrice(Settlement.CurrentSettlement, Hero.MainHero).ResultNumber;
-            }
-
-            [HarmonyPostfix]
-            [HarmonyPatch("LargeCaravanFormingCost", MethodType.Getter)]
-            private static void LargeCaravanFormingCost(ref int __result)
-            {
-                __result = (int) BannerKingsConfig.Instance.EconomyModel
-                    .GetCaravanPrice(Settlement.CurrentSettlement, Hero.MainHero, true).ResultNumber;
-            }
+                   hero.OwnedWorkshops.Count < 1 + hero.Clan.Tier;
         }
     }
 }

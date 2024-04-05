@@ -33,12 +33,17 @@ namespace BannerKings.Managers.Institutions.Religions.Faiths.Rites.Empire
                 new MultiSelectionInquiryData(
                     GetName().ToString(),
                     GetDescription().ToString(),
-                    options, false, 1, GameTexts.FindText("str_done").ToString(), string.Empty,
+                    options, 
+                    false, 
+                    1,
+                    1, 
+                    GameTexts.FindText("str_done").ToString(), string.Empty,
                     delegate (List<InquiryElement> x)
                     {
                         input = (Hero)x[0].Identifier;
                         SetDialogue();
-                    }, null, string.Empty));
+                    }, null, 
+                    string.Empty));
         }
 
         public override void Complete(Hero actionTaker)
@@ -71,7 +76,7 @@ namespace BannerKings.Managers.Institutions.Religions.Faiths.Rites.Empire
                 if (clan != actionTaker.Clan && (clanReligion == null || !clanReligion.Doctrines.Contains("sacrifice")))
                 {
                     bool affectRelatives;
-                    int relationChangeForExecutingHero = Campaign.Current.Models.ExecutionRelationModel.GetRelationChangeForExecutingHero(input, actionTaker, out affectRelatives);
+                    int relationChangeForExecutingHero = TaleWorlds.CampaignSystem.Campaign.Current.Models.ExecutionRelationModel.GetRelationChangeForExecutingHero(input, actionTaker, out affectRelatives);
                     if (relationChangeForExecutingHero != 0)
                         ChangeRelationAction.ApplyRelationChangeBetweenHeroes(actionTaker, clan.Leader, relationChangeForExecutingHero, true);
                 }

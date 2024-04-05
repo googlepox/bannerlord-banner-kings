@@ -1,5 +1,8 @@
 using System;
 using BannerKings.Behaviours;
+using BannerKings.Behaviours.Diplomacy;
+using BannerKings.Behaviours.Diplomacy.Groups;
+using BannerKings.Behaviours.Mercenary;
 using BannerKings.Extensions;
 using BannerKings.Managers.CampaignStart;
 using BannerKings.Managers.Court;
@@ -52,11 +55,10 @@ namespace BannerKings.Models.Vanilla
 
         public ExplainedNumber GetMinimumPeersQuantity(Kingdom kingdom, bool explanations = false)
         {
-            ExplainedNumber result = new ExplainedNumber(0f, explanations);
+            ExplainedNumber result = new ExplainedNumber(1f, explanations);
             if (kingdom != null)
             {
-                result.Add(1f, new TextObject("{=grgaF5Mc}Base value"));
-                result.Add(MathF.Floor(kingdom.Fiefs.Count / 2f), new TextObject("{=LBNzsqyb}Fiefs"));
+                result.Add(MathF.Floor(kingdom.Fiefs.Count / 2.5f), new TextObject("{=LBNzsqyb}Fiefs"));
                 result.LimitMax(kingdom.Clans.Count);
             }
 
@@ -71,7 +73,7 @@ namespace BannerKings.Models.Vanilla
         public ExplainedNumber CalculateInfluenceCap(Clan clan, bool includeDescriptions = false)
         {
             ExplainedNumber result = new ExplainedNumber(50f, includeDescriptions);
-            result.Add(clan.Tier * 150f, GameTexts.FindText("str_clan_tier_bonus"));
+            result.Add(clan.Tier * 175f, GameTexts.FindText("str_clan_tier_bonus"));
             result.LimitMin(clan.Tier * 50f);
 
             foreach (var fief in clan.Fiefs)
@@ -94,14 +96,14 @@ namespace BannerKings.Models.Vanilla
 
             foreach (var title in BannerKingsConfig.Instance.TitleManager.GetAllDeJure(clan))
             {
-                result.Add(500 / ((int)title.TitleType * 8f), title.FullName);
+                result.Add(600 / ((int)title.TitleType * 8f), title.FullName);
             }
 
             if (clan.Kingdom != null)
             {
                 if (clan == clan.Kingdom.RulingClan)
                 {
-                    result.Add(350, new TextObject("{=IcgVKFxZ}Ruler"));
+                    result.Add(350f, new TextObject("{=IcgVKFxZ}Ruler"));
                     int peers = GetCurrentPeers(clan.Kingdom);
 
                     int minimum = (int)GetMinimumPeersQuantity(clan.Kingdom).ResultNumber;
@@ -112,9 +114,26 @@ namespace BannerKings.Models.Vanilla
                             .SetTextVariable("COUNT", peers)
                             .SetTextVariable("MINIMUM", minimum));
                     }
+
+                    var diplomacy = TaleWorlds.CampaignSystem.Campaign.Current.GetCampaignBehavior<BKDiplomacyBehavior>().GetKingdomDiplomacy(clan.Kingdom);
+                    if (diplomacy != null)
+                    {
+                        foreach (var pact in diplomacy.TradePacts)
+                        {
+                            result.AddFactor(-0.075f, new TextObject("{=kiBf4bre}Trade pact with {KINGDOM}")
+                                .SetTextVariable("KINGDOM", pact.Name));
+                        }
+
+                        foreach (InterestGroup group in diplomacy.Groups)
+                        {
+                            result.AddFactor(0.5f * group.Influence.ResultNumber * (group.Support.ResultNumber - 0.5f),
+                                new TextObject("{=NVoUn9ro}{GROUP} support")
+                                .SetTextVariable("GROUP", group.Name));
+                        }
+                    }
                 }
 
-                if (clan.Culture != clan.Kingdom.Culture)
+                if (clan.Culture.StringId != clan.Kingdom.Culture.StringId)
                 {
                     result.AddFactor(-0.2f, new TextObject("{=qW1tnxGu}Kingdom cultural difference"));
                 }
@@ -158,6 +177,11 @@ namespace BannerKings.Models.Vanilla
                     .SetTextVariable("GRACE", council.CourtGrace.Grace.ToString("0.0")));
             }
 
+            if (council.Peerage == null || council.Peerage.IsLesserPeerage)
+            {
+                result.AddFactor(-0.5f, new TextObject("{=DcEELxKF}Not a Full Peer"));
+            }
+
             return result;
         }
 
@@ -165,7 +189,7 @@ namespace BannerKings.Models.Vanilla
         {
             var baseResult = base.CalculateInfluenceChange(clan, includeDescriptions);
 
-            if (clan == Clan.PlayerClan && Campaign.Current.GetCampaignBehavior<BKCampaignStartBehavior>().HasDebuff(DefaultStartOptions.Instance.IndebtedLord))
+            if (clan == Clan.PlayerClan && TaleWorlds.CampaignSystem.Campaign.Current.GetCampaignBehavior<BKCampaignStartBehavior>().HasDebuff(DefaultStartOptions.Instance.IndebtedLord))
             {
                 baseResult.Add(-2f, DefaultStartOptions.Instance.IndebtedLord.Name);
             }
@@ -173,7 +197,7 @@ namespace BannerKings.Models.Vanilla
             ExplainedNumber cap = CalculateInfluenceCap(clan, includeDescriptions);
             if (cap.ResultNumber < clan.Influence)
             {
-                baseResult.Add((clan.Influence / cap.ResultNumber) * -2f, new TextObject("{=wwYABLRd}Clan Influence Limit"));
+                baseResult.Add((clan.Influence / cap.ResultNumber) * -3f, new TextObject("{=wwYABLRd}Clan Influence Limit"));
             }
 
             var generalSupport = 0f;
@@ -183,7 +207,7 @@ namespace BannerKings.Models.Vanilla
             var education = BannerKingsConfig.Instance.EducationManager.GetHeroEducation(clan.Leader);
             if (clan.IsUnderMercenaryService && clan.Leader != null)
             {
-                var mercenaryChange = MathF.Ceiling(clan.Influence * (1f / Campaign.Current.Models.ClanFinanceModel.RevenueSmoothenFraction()));
+                var mercenaryChange = MathF.Ceiling(clan.Influence * (1f / TaleWorlds.CampaignSystem.Campaign.Current.Models.ClanFinanceModel.RevenueSmoothenFraction()));
                 if (mercenaryChange != 0)
                 {
                     if (education.Lifestyle != null && education.Lifestyle.Equals(DefaultLifestyles.Instance.Mercenary))
@@ -196,6 +220,13 @@ namespace BannerKings.Models.Vanilla
                     {
                         baseResult.Add((float)(mercenaryChange * 0.1f), BKPerks.Instance.VaryagRecognizedMercenary.Name);
                     }
+                }
+
+                var career = TaleWorlds.CampaignSystem.Campaign.Current.GetCampaignBehavior<BKMercenaryCareerBehavior>().GetCareer(clan);
+                if (career != null && career.HasPrivilegeCurrentKingdom(DefaultMercenaryPrivileges.Instance.IncreasedPay))
+                {
+                    int level = career.GetPrivilegeLevelCurrentKingdom(DefaultMercenaryPrivileges.Instance.IncreasedPay);
+                    baseResult.Add((float)(mercenaryChange * level * 0.05f), DefaultMercenaryPrivileges.Instance.IncreasedPay.Name);
                 }
             }
 
@@ -238,39 +269,16 @@ namespace BannerKings.Models.Vanilla
                 if (religion.HasDoctrine(DefaultDoctrines.Instance.Druidism) &&
                     spiritual != null && spiritual.Member == null) 
                 {
-                    baseResult.Add(-4f, DefaultDoctrines.Instance.Druidism.Name);
+                    baseResult.Add(-2f, DefaultDoctrines.Instance.Druidism.Name);
                 }
             }
 
             foreach (var settlement in clan.Settlements)
             {
-                if (!settlement.IsVillage && !settlement.IsCastle && !settlement.IsTown)
-                {
-                    continue;
-                }
+                if (!settlement.IsVillage && !settlement.IsCastle && !settlement.IsTown) continue;
 
                 var data = BannerKingsConfig.Instance.PopulationManager.GetPopData(settlement);
-                if (data == null || settlement.Name == null)
-                {
-                    continue;
-                }
-
-                if (BannerKingsConfig.Instance.AI.AcceptNotableAid(clan, data))
-                {
-                    float aids = 0f;
-                    int count = 0;
-                    foreach (var notable in data.Settlement.Notables)
-                    {
-                        if (notable.SupporterOf == clan && notable.Gold > 5000)
-                        {
-                            aids -= 1f;
-                            count++;
-                        }
-                    }
-
-                    baseResult.Add(aids, new TextObject("{=yDr9aqLO}Financial aids from supporters (x{COUNT})")
-                                .SetTextVariable("COUNT", count));
-                }
+                if (data == null || settlement.Name == null) continue;     
 
                 var settlementResult = CalculateSettlementInfluence(settlement, data, includeDescriptions);
                 if (settlement.IsVillage)
@@ -312,6 +320,11 @@ namespace BannerKings.Models.Vanilla
                 {
                     baseResult.AddFactor(finalAutonomy, new TextObject("{=qJbYtZjH}Overall settlement autonomy"));
                 }
+            }
+
+            if (council.Peerage != null && council.Peerage.IsFullPeerage)
+            {
+                baseResult.AddFactor(0.1f * (baseResult.ResultNumber > 0f ? 1f : -1f), council.Peerage.Name);
             }
 
             return baseResult;

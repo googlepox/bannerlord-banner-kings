@@ -39,27 +39,6 @@ namespace BannerKings.Managers.Populations
             return result;
         }
 
-        public int GetNotableManpower(PopType type, Hero notable, EstateData data)
-        {
-            int result = 0;
-
-            if (data != null)
-            {
-                var estate = data.GetHeroEstate(notable);
-                if (estate != null)
-                {
-                    return estate.GetManpower(type);
-                }
-            }
-
-            if (Manpowers.ContainsKey(type))
-            {
-                result = (int)Manpowers[type];
-            }
-
-            return result;
-        }
-
         public float PeasantManpower
         {
             get
@@ -88,7 +67,6 @@ namespace BannerKings.Managers.Populations
             }
         }
 
-
         public float Manpower => PeasantManpower + NobleManpower;
 
         public ExplainedNumber DraftEfficiency
@@ -98,7 +76,7 @@ namespace BannerKings.Managers.Populations
                 var number = new ExplainedNumber(0f);
                 if (settlement.Notables is {Count: > 0})
                 {
-                    number = BannerKingsConfig.Instance.VolunteerModel.GetDraftEfficiency(settlement.Notables[0], 2, settlement);
+                    number = BannerKingsConfig.Instance.VolunteerModel.GetDraftEfficiency(settlement.Notables[0], settlement);
                 }
 
                 return number;
@@ -122,6 +100,8 @@ namespace BannerKings.Managers.Populations
 
         public PopType GetCharacterManpowerType(CharacterObject character)
         {
+            if (character == null) return PopType.None;
+
             if (Utils.Helpers.IsRetinueTroop(character))
             {
                 return PopType.Nobles;
@@ -132,7 +112,7 @@ namespace BannerKings.Managers.Populations
             {
                 if (spawn.Troop == character)
                 {
-                    return spawn.PopType;
+                    return spawn.GetTroopPopType();
                 }
             }
 
@@ -182,17 +162,6 @@ namespace BannerKings.Managers.Populations
         {
             InitManpowers();
             PopType type = GetCharacterManpowerType(troop);
-            if (data.EstateData != null)
-            {
-                var estate = data.EstateData.GetHeroEstate(notable);
-                if (estate != null && (type == PopType.Serfs || type == PopType.Slaves))
-                {
-                    estate.AddManpower(type, -quantity);
-                    estate.AddPopulation(type, -quantity);
-                    return;
-                }
-            }
-
             Manpowers[type] -= quantity;
             data.UpdatePopType(type, -quantity);
         }
@@ -222,21 +191,6 @@ namespace BannerKings.Managers.Populations
                 float growth = maxManpower * 0.01f;
                 Manpowers[type] += growth;
                 Manpowers[type] = MathF.Clamp(Manpowers[type], 0f, maxManpower);
-
-                if (data.EstateData != null)
-                {
-                    foreach (var estate in data.EstateData.Estates)
-                    {
-                        if (estate.IsDisabled)
-                        {
-                            continue;
-                        }
-
-                        float estateMaxManpower = estate.GetTypeCount(type) * militarism;
-                        float estateGrowth = estateMaxManpower * 0.01f;
-                        estate.AddManpower(type, estateGrowth);
-                    }
-                }
             }
         }
 

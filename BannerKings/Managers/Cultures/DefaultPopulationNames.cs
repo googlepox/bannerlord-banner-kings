@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Linq;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.Localization;
@@ -32,7 +32,9 @@ namespace BannerKings.Managers.Cultures
 
         public CulturalPopulationName GetPopulationName(CultureObject culture, PopType popType)
         {
-            CulturalPopulationName name = All.FirstOrDefault(x => x.Culture == culture && popType == x.PopType);
+            CulturalPopulationName name = null;
+            if (culture != null) name = All
+                .FirstOrDefault(x => x.Culture != null && x.Culture.StringId == culture.StringId && popType == x.PopType);
             return name != null ? name : All.First(x => x.Culture == null && popType == x.PopType);
         }
 
@@ -40,23 +42,23 @@ namespace BannerKings.Managers.Cultures
         {
             DefaultNobles = CulturalPopulationName.CreateNobles("DefaultNobles",
                 null,
-                new TextObject("{=!}Nobles"));
+                new TextObject("Nobles"));
 
             DefaultCraftsmen = CulturalPopulationName.CreateCraftsmen("DefaultCraftsmen",
                 null,
-                new TextObject("{=!}Craftsmen"));
+                new TextObject("Craftsmen"));
 
             DefaultTenants = CulturalPopulationName.CreateTenants("DefaultTenants",
                 null,
-                new TextObject("{=!}Tenants"));
+                new TextObject("Tenants"));
 
             DefaultSerfs = CulturalPopulationName.CreateSerfs("DefaultSerfs",
                 null,
-                new TextObject("{=!}Serfs"));
+                new TextObject("Serfs"));
 
             DefaultSlaves = CulturalPopulationName.CreateSlaves("DefaultSlaves",
                 null,
-                new TextObject("{=!}Slaves"));
+                new TextObject("Slaves"));
         }
     }
 }

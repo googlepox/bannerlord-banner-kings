@@ -1,6 +1,7 @@
 ﻿using System;
 using BannerKings.Extensions;
 using BannerKings.Managers;
+using BannerKings.Managers.Institutions.Religions;
 using BannerKings.Managers.Populations;
 using BannerKings.Managers.Populations.Estates;
 using BannerKings.Managers.Populations.Villages;
@@ -17,7 +18,7 @@ namespace BannerKings.Models.Vanilla
 {
     public class BKVillageProductionModel : DefaultVillageProductionCalculatorModel
     {
-        private static readonly float PRODUCTION = 0.005f;
+        private static readonly float PRODUCTION = 0.0045f;
         private static readonly float BOOSTED_PRODUCTION = 0.008f;
 
         public ExplainedNumber CalculateProductionsExplained(Village village)
@@ -36,13 +37,14 @@ namespace BannerKings.Models.Vanilla
         public override float CalculateDailyProductionAmount(Village village, ItemObject item)
         {
             if (village.Settlement != null && village.VillageState == Village.VillageStates.Normal &&
-                BannerKingsConfig.Instance.PopulationManager != null &&
-                BannerKingsConfig.Instance.PopulationManager.IsSettlementPopulated(village.Settlement))
+                BannerKingsConfig.Instance.PopulationManager != null)
             {
                 var explainedNumber = new ExplainedNumber(0f);
                 var data = BannerKingsConfig.Instance.PopulationManager.GetPopData(village.Settlement);
+                if (data == null) return base.CalculateDailyProductionAmount(village, item);
+
                 var villageData = data.VillageData;
-                var serfs = data.LandData.AvailableSerfsWorkForce + data.LandData.AvailableTenantsWorkForce;
+                var farmers = data.LandData.AvailableSerfsWorkForce + data.LandData.AvailableTenantsWorkForce;
                 var slaves = data.LandData.AvailableSlavesWorkForce;
                 var education = BannerKingsConfig.Instance.EducationManager.GetHeroEducation(village.Settlement.OwnerClan.Leader);
 
@@ -59,7 +61,7 @@ namespace BannerKings.Models.Vanilla
                     if (output == item)
                     {
                         var weight = valueTuple.Item2 / totalWeight;
-                        explainedNumber.Add(GetWorkforceOutput(serfs * weight, slaves * weight, item, data)
+                        explainedNumber.Add(GetWorkforceOutput(farmers * weight, slaves * weight, item, data)
                             .ResultNumber);
 
                         if (item.IsMountable && item.Tier == ItemObject.ItemTiers.Tier2 &&
@@ -136,12 +138,22 @@ namespace BannerKings.Models.Vanilla
                                     DefaultCulturalFeats.VlandianCastleVillageProductionFeat.EffectBonus,
                                     GameTexts.FindText("str_culture"));
                             }
+
+                            if (BannerKingsConfig.Instance.ReligionsManager.HasBlessing(characterObject.HeroObject,
+                                DefaultDivinities.Instance.Hirvi))
+                            {
+                                if (village.VillageType == DefaultVillageTypes.Lumberjack || village.VillageType.StringId == "trapper")
+                                {
+                                    explainedNumber.AddFactor(0.25f, DefaultDivinities.Instance.Hirvi.Name);
+                                }
+                            }
                         }
 
                         if (villageData.CurrentBuilding.BuildingType.StringId == DefaultVillageBuildings.Instance.DailyProduction.StringId)
                         {
                             explainedNumber.AddFactor(0.15f, DefaultVillageBuildings.Instance.DailyProduction.Name);
                         }
+                       
 
                         explainedNumber.AddFactor(data.EconomicData.ProductionEfficiency.ResultNumber - 1f);
                     }
@@ -153,14 +165,14 @@ namespace BannerKings.Models.Vanilla
             return base.CalculateDailyProductionAmount(village, item);
         }
 
-        private ExplainedNumber GetWorkforceOutput(float serfs, float slaves, ItemObject item, PopulationData data)
+        private ExplainedNumber GetWorkforceOutput(float farmers, float slaves, ItemObject item, PopulationData data)
         {
             var result = new ExplainedNumber();
             result.LimitMin(0f);
             result.LimitMax(200f);
-            if (serfs is < 0f or float.NaN)
+            if (farmers is < 0f or float.NaN)
             {
-                serfs = 1f;
+                farmers = 1f;
             }
 
             if (slaves is < 0f or float.NaN)
@@ -168,20 +180,20 @@ namespace BannerKings.Models.Vanilla
                 slaves = 1f;
             }
 
-            bool woodland = AddWoodlandProcution(ref result, serfs, slaves, item, data);
+            bool woodland = AddWoodlandProcution(ref result, farmers, slaves, item, data);
             bool animal = AddAnimalProcution(ref result, item, data);
-            bool farm = AddFarmProcution(ref result, serfs, slaves, item, data);
+            bool farm = AddFarmProcution(ref result, farmers, slaves, item, data);
             if (!woodland && !animal && !farm)
             {
-                AddGeneralProcution(ref result, serfs, slaves, item, data);
+                AddGeneralProcution(ref result, farmers, slaves, item, data);
             }
 
             return result;
         }
 
-        private void AddGeneralProcution(ref ExplainedNumber result, float serfs, float slaves, ItemObject item, PopulationData data)
+        private void AddGeneralProcution(ref ExplainedNumber result, float farmers, float slaves, ItemObject item, PopulationData data)
         {
-            result.Add(serfs * PRODUCTION);
+            result.Add(farmers * PRODUCTION);
 
             if (item.IsMineral())
             {
@@ -199,7 +211,7 @@ namespace BannerKings.Models.Vanilla
             result.Add(slaves * PRODUCTION);
         }
 
-        private bool AddFarmProcution(ref ExplainedNumber result, float serfs, float slaves, ItemObject item, PopulationData data)
+        private bool AddFarmProcution(ref ExplainedNumber result, float farmers, float slaves, ItemObject item, PopulationData data)
         {
             bool valid = item.IsFood && item.StringId != "fish";
             if (valid)
@@ -213,7 +225,7 @@ namespace BannerKings.Models.Vanilla
                     }
                 }
 
-                result.Add(serfs * data.LandData.GetAcreClassOutput("farmland", PopulationManager.PopType.Serfs));
+                result.Add(farmers * data.LandData.GetAcreClassOutput("farmland", PopulationManager.PopType.Serfs));
                 result.Add(slaves * data.LandData.GetAcreClassOutput("farmland", PopulationManager.PopType.Slaves));
             }
 

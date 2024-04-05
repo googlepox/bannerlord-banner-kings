@@ -1,15 +1,21 @@
 using BannerKings.Behaviours;
+using BannerKings.Campaign.Skills;
+using BannerKings.Extensions;
+using BannerKings.Managers.Buildings;
 using BannerKings.Managers.Court.Members;
 using BannerKings.Managers.Court.Members.Tasks;
 using BannerKings.Managers.Innovations;
 using BannerKings.Managers.Policies;
+using BannerKings.Managers.Populations;
+using BannerKings.Managers.Shipping;
 using BannerKings.Managers.Skills;
-using BannerKings.Managers.Titles;
 using BannerKings.Managers.Titles.Governments;
+using Helpers;
+using System.Linq;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.CharacterDevelopment;
-using TaleWorlds.CampaignSystem.GameComponents;
 using TaleWorlds.CampaignSystem.Settlements;
+using TaleWorlds.CampaignSystem.Settlements.Buildings;
 using TaleWorlds.Core;
 using TaleWorlds.Library;
 using TaleWorlds.Localization;
@@ -19,21 +25,26 @@ using static BannerKings.Managers.PopulationManager;
 
 namespace BannerKings.Models.Vanilla
 {
-    public class BKEconomyModel : DefaultSettlementEconomyModel, IEconomyModel
+    public class BKEconomyModel : EconomyModel
     {
         private static readonly float CRAFTSMEN_EFFECT_CAP = 0.4f;
 
-        public ExplainedNumber CalculateEffect(Settlement settlement)
+
+        public override ExplainedNumber CalculateMercantilism(Settlement settlement)
         {
             var result = new ExplainedNumber(0.1f, true);
             result.LimitMin(0f);
             result.LimitMax(1f);
 
-            var title = BannerKingsConfig.Instance.TitleManager.GetSovereignFromSettlement(settlement);
-            if (title != null)
+            var titleData = settlement.PopulationData().TitleData;
+            if (titleData != null)
             {
-                Government government = title.Contract.Government;
-                result.Add(government.Mercantilism, new TextObject("{=!}Government"));
+                var title = titleData.Title;
+                if (title != null)
+                {
+                    Government government = title.Contract.Government;
+                    result.Add(government.Mercantilism, new TextObject("Government"));
+                }
             }
 
             if (BannerKingsConfig.Instance.PolicyManager.IsDecisionEnacted(settlement, "decision_mercantilism"))
@@ -44,21 +55,13 @@ namespace BannerKings.Models.Vanilla
             return result;
         }
 
-        public ExplainedNumber CalculateProductionEfficiency(Settlement settlement)
+        public override ExplainedNumber CalculateProductionEfficiency(Settlement settlement, bool explanations = false, PopulationData data = null)
         {
-            var result = new ExplainedNumber(0, true);
-            if (!settlement.IsVillage)
-            {
-                result.Add(new DefaultWorkshopModel().GetPolicyEffectToProduction(settlement.Town));
-            }
-            else
-            {
-                result.Add(0.7f);
-            }
+            var result = new ExplainedNumber(!settlement.IsVillage ? 0.7f : 0.9f, explanations);
+            data ??= BannerKingsConfig.Instance.PopulationManager.GetPopData(settlement);
 
-            var data = BannerKingsConfig.Instance.PopulationManager.GetPopData(settlement);
             float craftsmen = data.GetTypeCount(PopType.Craftsmen);
-            result.Add(MathF.Min(craftsmen / 250f * 0.020f, CRAFTSMEN_EFFECT_CAP), new TextObject("Craftsmen"));
+            result.Add(MathF.Min(craftsmen / 250f * 0.020f, CRAFTSMEN_EFFECT_CAP), Utils.Helpers.GetClassName(PopType.Craftsmen, settlement.Culture));
 
             if (BannerKingsConfig.Instance.PolicyManager.IsPolicyEnacted(settlement, "workforce",
                     (int) WorkforcePolicy.Martial_Law))
@@ -70,7 +73,7 @@ namespace BannerKings.Models.Vanilla
             result.Add(0.25f * mercantilism, new TextObject("Mercantilism"));
 
             var government = BannerKingsConfig.Instance.TitleManager.GetSettlementGovernment(settlement);
-            if (government == DefaultGovernments.Instance.Feudal)
+            if (government.Equals(DefaultGovernments.Instance.Feudal))
             {
                 result.AddFactor(0.15f, new TextObject("{=PSrEtF5L}Government"));
             }
@@ -130,23 +133,22 @@ namespace BannerKings.Models.Vanilla
 
             if (settlement.Town != null)
             {
-                Hero governor = settlement.Town.Governor;
-                if (governor != null && governor.IsArtisan)
-                {
-                    result.AddFactor(governor.GetSkillValue(DefaultSkills.Crafting) * 0.08f, new TextObject("{=cbL60ObC}Artisan Governor"));
-                }
+                SkillHelper.AddSkillBonusForTown(DefaultSkills.Crafting,
+                        BKSkillEffects.Instance.ProductionEfficiency,
+                        settlement.Town,
+                        ref result);
             }
 
             return result;
         }
 
-        public ExplainedNumber CalculateProductionQuality(Settlement settlement)
+        public override ExplainedNumber CalculateProductionQuality(Settlement settlement)
         {
             var result = new ExplainedNumber(1f, true);
             result.LimitMin(0f);
             result.LimitMax(2f);
 
-            result.Add((CalculateEffect(settlement).ResultNumber - 0.4f) * 0.5f, new TextObject("{=5eHCGMEK}Mercantilism"));
+            result.Add((CalculateMercantilism(settlement).ResultNumber - 0.4f) * 0.5f, new TextObject("{=5eHCGMEK}Mercantilism"));
 
             var lordshipEconomicAdministration = BKPerks.Instance.LordshipEconomicAdministration;
             if (settlement.Owner.GetPerkValue(lordshipEconomicAdministration))
@@ -165,6 +167,12 @@ namespace BannerKings.Models.Vanilla
                 result.Add(0.1f, BKPerks.Instance.CivilManufacturer.Name);
             }
 
+            var government = BannerKingsConfig.Instance.TitleManager.GetSettlementGovernment(settlement);
+            if (government.Equals(DefaultGovernments.Instance.Republic))
+            {
+                result.AddFactor(0.1f, new TextObject("{=PSrEtF5L}Government"));
+            }
+
             BannerKingsConfig.Instance.CourtManager.ApplyCouncilEffect(ref result, settlement.OwnerClan.Leader,
                 DefaultCouncilPositions.Instance.Steward,
                 DefaultCouncilTasks.Instance.OverseeProduction,
@@ -172,11 +180,10 @@ namespace BannerKings.Models.Vanilla
 
             if (settlement.Town != null)
             {
-                Hero governor = settlement.Town.Governor;
-                if (governor != null && governor.IsArtisan)
-                {
-                    result.AddFactor(governor.GetSkillValue(DefaultSkills.Crafting) * 0.04f, new TextObject("{=cbL60ObC}Artisan Governor"));
-                }
+                SkillHelper.AddSkillBonusForTown(DefaultSkills.Crafting,
+                       BKSkillEffects.Instance.ProductionQuality,
+                       settlement.Town,
+                       ref result);
             }
            
             return result;
@@ -211,9 +218,9 @@ namespace BannerKings.Models.Vanilla
             return cost;
         }
 
-        public ExplainedNumber CalculateCaravanAttraction(Settlement settlement)
+        public override ExplainedNumber CalculateTradePower(Settlement settlement, bool descriptions = false)
         {
-            var result = new ExplainedNumber(1f, true);
+            ExplainedNumber result = new ExplainedNumber(1f, descriptions);
 
             var data = BannerKingsConfig.Instance.PopulationManager.GetPopData(settlement);
             result.Add(data.EconomicData.Mercantilism.ResultNumber / 2f, new TextObject("{=5eHCGMEK}Mercantilism"));
@@ -223,6 +230,20 @@ namespace BannerKings.Models.Vanilla
                 DefaultCouncilPositions.Instance.Steward,
                 DefaultCouncilTasks.Instance.DevelopEconomy, 
                 0.15f, false);
+
+            foreach (var lane in DefaultShippingLanes.Instance.GetSettlementLanes(settlement))
+            {
+                float laneResult = 0f;
+                foreach (Settlement port in lane.Ports)
+                {
+                    if (port.IsTown)
+                    {
+                        laneResult += 0.1f;
+                    }
+                }
+
+                result.Add(laneResult, lane.Name);
+            }
 
             if (settlement.Town != null)
             {
@@ -237,10 +258,18 @@ namespace BannerKings.Models.Vanilla
                     result.AddFactor(factor, new TextObject("{=s2gxPA2Q}Market gold"));
                 }
                 
-                var capital = Campaign.Current.GetCampaignBehavior<BKCapitalBehavior>().GetCapital(settlement.OwnerClan.Kingdom);
+                var capital = TaleWorlds.CampaignSystem.Campaign.Current.GetCampaignBehavior<BKCapitalBehavior>().GetCapital(settlement.OwnerClan.Kingdom);
                 if (capital == settlement.Town)
                 {
                     result.AddFactor(0.4f, new TextObject("{=fQVyeiJb}Capital"));
+                }
+
+                Building building = settlement.Town.Buildings.FirstOrDefault(x => x.BuildingType.StringId == BKBuildings.Instance.Harbor.StringId ||
+                                        x.BuildingType.StringId == BKBuildings.Instance.Port.StringId);
+                if (building != null && building.CurrentLevel > 0)
+                {
+                    bool harbor = building.BuildingType.StringId == BKBuildings.Instance.Harbor.StringId;
+                    result.AddFactor((harbor ? 0.12f : 0.7f) * building.CurrentLevel, building.Name);
                 }
 
                 BannerKingsConfig.Instance.CourtManager.ApplyCouncilEffect(ref result,
@@ -251,109 +280,87 @@ namespace BannerKings.Models.Vanilla
                    true);
 
                 Hero governor = settlement.Town.Governor;
-                if (governor != null && governor.IsMerchant)
+                if (governor != null)
                 {
-                    result.AddFactor(governor.GetSkillValue(DefaultSkills.Trade) * 0.1f, new TextObject("{=mpuvSCJU}Merchant Governor"));
+                    SkillHelper.AddSkillBonusForTown(DefaultSkills.Trade,
+                       BKSkillEffects.Instance.TradePower,
+                       settlement.Town,
+                       ref result);
+                }
+
+                if (settlement.IsCastle)
+                {
+                    result.AddFactor(-0.4f, new TextObject("{=UPhMZ859}Castle"));
                 }
             }
 
             return result;
         }
 
-        public override float GetDailyDemandForCategory(Town town, ItemCategory category, int extraProsperity) => 
-            GetCategoryDemand(town.Settlement, category, extraProsperity);
-
-        public float GetCategoryDemand(Settlement settlement, ItemCategory category, int extraProsperity)
+        public override float GetDailyDemandForCategory(Town town, ItemCategory category, int extraProsperity)
         {
-            var data = BannerKingsConfig.Instance.PopulationManager.GetPopData(settlement);
+            var data = town.Settlement.PopulationData();
             if (data == null)
             {
-                return base.GetDailyDemandForCategory(settlement.Town, category, extraProsperity);
+                return base.GetDailyDemandForCategory(town, category, extraProsperity);
             }
 
             float nobles = data.GetTypeCount(PopType.Nobles);
             float craftsmen = data.GetTypeCount(PopType.Craftsmen);
             float serfs = data.GetTypeCount(PopType.Serfs);
             float tenants = data.GetTypeCount(PopType.Tenants);
-            var type = Utils.Helpers.GetTradeGoodConsumptionType(category);
+            ConsumptionType type = Utils.Helpers.GetTradeGoodConsumptionType(category);
 
-            var baseResult = 0f;
+            float baseResult = 0f;
             switch (type)
             {
                 case ConsumptionType.Luxury:
-                    baseResult += nobles * 8f;
-                    baseResult += craftsmen * 1f;
+                    baseResult += nobles * 0.2f;
+                    baseResult += craftsmen * 0.05f;
                     break;
                 case ConsumptionType.Industrial:
-                    baseResult += craftsmen * 1.2f;
-                    baseResult += serfs * 0.2f;
-                    baseResult += tenants * 0.20f;
+                    baseResult += craftsmen * 0.06f;
+                    baseResult += serfs * 0.01f;
+                    baseResult += tenants * 0.02f;
                     break;
                 default:
-                    baseResult += nobles * 1f;
-                    baseResult += craftsmen * 1f;
-                    baseResult += serfs * 0.20f;
-                    baseResult += tenants * 0.20f;
+                    baseResult += nobles * 0.05f;
+                    baseResult += craftsmen * 0.04f;
+                    baseResult += serfs * 0.01f;
+                    baseResult += tenants * 0.02f;
                     break;
             }
 
-            var prosperity = settlement.IsVillage ? settlement.Village.TradeBound.Prosperity : settlement.Town.Prosperity;
-            var num = MathF.Max(0f, baseResult + (prosperity / 3) + extraProsperity);
-            var num2 = MathF.Max(0f, baseResult + (prosperity / 2));
-
-            if (!category.IsTradeGood && category.StringId != "noble_horse")
-            {
-                num *= 3f;
-            }
+            float prosperity = town.Prosperity;
+            float num = MathF.Max(0f, baseResult + (prosperity / 2) + extraProsperity);
+            float num2 = MathF.Max(0f, baseResult + (prosperity));
 
             float baseDemand = category.BaseDemand;
-            var num3 = baseDemand * num;
-            var num4 = category.LuxuryDemand * num2;
-            var result = num3 + num4;
-            if (category.BaseDemand < 1E-08f)
+            float num3 = baseDemand * num;
+            float num4 = category.LuxuryDemand * num2;
+            float result = num3 + num4;
+            if (baseDemand < 1E-08f)
             {
                 result = num * 0.01f;
-            }        
+            }
 
             return result;
         }
 
-        public override float GetEstimatedDemandForCategory(Town town, ItemData itemData, ItemCategory category)
-        {
-            return GetDailyDemandForCategory(town, category, 1000);
-        }
+        public override float GetEstimatedDemandForCategory(Town town, ItemData itemData, ItemCategory category) =>
+            GetDailyDemandForCategory(town, category, 1000);
 
-        public override float GetDemandChangeFromValue(float purchaseValue)
-        {
-            var value = base.GetDemandChangeFromValue(purchaseValue);
-            return value;
-        }
+        public override int GetTownGoldChange(Town town) => (int)GetMerchantIncome(town).ResultNumber;
 
-        public override (float, float) GetSupplyDemandForCategory(Town town, ItemCategory category, float dailySupply,
-            float dailyDemand, float oldSupply, float oldDemand)
-        {
-            var baseResult =
-                base.GetSupplyDemandForCategory(town, category, dailySupply, dailyDemand, oldSupply, oldDemand);
-            return baseResult;
-        }
-
-        public override int GetTownGoldChange(Town town)
-        {
-            if (BannerKingsConfig.Instance.PopulationManager != null &&
-                BannerKingsConfig.Instance.PopulationManager.IsSettlementPopulated(town.Settlement))
-            {
-                return GetMerchantIncome(town);
-            }
-
-            return base.GetTownGoldChange(town);
-        }
-
-        public int GetMerchantIncome(Town town)
+        public ExplainedNumber GetMerchantIncome(Town town, bool explanations = false)
         {
             var data = BannerKingsConfig.Instance.PopulationManager.GetPopData(town.Settlement);
+            if (data == null) return new ExplainedNumber(base.GetTownGoldChange(town));
+
+            ExplainedNumber result = new ExplainedNumber(town.Prosperity / 3.5f, explanations);
             float slaves = data.GetTypeCount(PopType.Slaves);
             var privateSlaves = slaves * (1f - data.EconomicData.StateSlaves);
-            var tax = 1f;
+            var tax = 0.05f;
             if (BannerKingsConfig.Instance.PolicyManager.IsDecisionEnacted(town.Settlement, "decision_slaves_tax"))
             {
                 var taxtype = (BannerKingsConfig.Instance.PolicyManager.GetPolicy(town.Settlement, "tax") as BKTaxPolicy)
@@ -366,13 +373,44 @@ namespace BannerKings.Models.Vanilla
                 };
             }
 
-            var efficiency = data.EconomicData.ProductionEfficiency.ResultNumber;
+            result.AddFactor(data.EconomicData.ProductionEfficiency.ResultNumber, new TextObject("Production efficiency"));
             if (privateSlaves > 0f)
             {
-                return (int) ((privateSlaves * tax * efficiency) + (town.Prosperity / 2f));
+                result.Add(privateSlaves * tax, new TextObject("{=yjbfHwog}Private slaves"));
             }
 
+            if (town.IsCastle) result.AddFactor(-0.5f, new TextObject("{=kyB8tkgY}Castle"));
+            return result;
+        }
+
+        public override int GetNotableCaravanLimit(Hero notable)
+        {
+            Occupation occupation = notable.Occupation;
+            if (occupation == Occupation.Merchant) return 3;
+            else if (occupation == Occupation.Artisan) return 2;
+            else if (occupation == Occupation.GangLeader) return 1;
+
             return 0;
+        }
+
+        public override int GetSettlementMarketGoldLimit(Settlement settlememt)
+        {
+            int result = 0;
+            if (settlememt.IsVillage)
+            {
+                result += 10000;
+                Village village = settlememt.Village;
+                result += (int)(village.Hearth * 3f);
+            }
+            else if (settlememt.Town != null)
+            {
+                result += 50000;
+                Town town = settlememt.Town;
+                if (settlememt.IsCastle) result += (int)(town.Prosperity * 12f);
+                else result += (int)(town.Prosperity * 25f);
+            }
+
+            return result;
         }
     }
 }

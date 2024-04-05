@@ -95,7 +95,7 @@ namespace BannerKings.Managers.Goals.Decisions
                 }
 
                 /*var imperialKingdomsStringIds = new List<string> { "empire", "empire_w", "empire_s" };
-                var imperialKingdoms = Campaign.Current.Kingdoms.Where(k => imperialKingdomsStringIds.Contains(k.StringId)).ToList();
+                var imperialKingdoms = TaleWorlds.CampaignSystem.Campaign.Current.Kingdoms.Where(k => imperialKingdomsStringIds.Contains(k.StringId)).ToList();
                 if (imperialKingdoms.Any() && imperialKingdoms.All(ik => ik.Leader != referenceHero))
                 {
                     failedReasons.Add(new TextObject("{=YFeW2BUA}You're not the leader of an Imperial Kingdom."));
@@ -107,13 +107,13 @@ namespace BannerKings.Managers.Goals.Decisions
                     failedReasons.Add(new TextObject("{=4jUw7j4u}Your kingdom is not part of {CULTURE} culture.")
                         .SetTextVariable("CULTURE", culture.Name));
                 }
-
+                /*
                 var religion = BannerKingsConfig.Instance.ReligionsManager.GetHeroReligion(referenceHero);
                 if (religion == null || religion.Faith.FaithGroup != DefaultFaiths.Instance.ImperialGroup)
                 {
                     failedReasons.Add(new TextObject("{=gcdyXvXR}You do not adhere to a faith that is part of the {RELIGION} faith group.")
                         .SetTextVariable("RELIGION", DefaultFaiths.Instance.ImperialGroup.Name));
-                }
+                }*/
 
                 foreach (Settlement settlement in settlements)
                 {
@@ -136,7 +136,7 @@ namespace BannerKings.Managers.Goals.Decisions
             (
                 new InquiryData
                 (
-                    "Establish a new Title",
+                    new TextObject("{=thijhbki}Establish a new Title").ToString(),
                     new TextObject("{=qjD2WwBH}Do you want to establish the title {TITLE}?\nThis will cost you {GOLD}{GOLD_ICON} and {INFLUENCE}{INFLUENCE_ICON}.\nAs a reward your clan will earn {RENOWN} renown.")
                         .SetTextVariable("TITLE", name)
                         .SetTextVariable("GOLD", gold)

@@ -27,12 +27,12 @@ namespace BannerKings.Components
                 delegate(MobileParty mobileParty)
                 {
                     mobileParty.SetPartyUsedByQuest(true);
-                    mobileParty.Party.Visuals.SetMapIconAsDirty();
+                    mobileParty.Party.SetVisualAsDirty();
                     mobileParty.Ai.SetInitiative(0.5f, 1f, float.MaxValue);
                     mobileParty.ShouldJoinPlayerBattles = true;
                     mobileParty.Aggressiveness = 0.1f;
                     mobileParty.Ai.SetMoveEscortParty(escortTarget);
-                    mobileParty.SetWagePaymentLimit(Campaign.Current.Models.PartyWageModel.MaxWage);
+                    mobileParty.SetWagePaymentLimit(TaleWorlds.CampaignSystem.Campaign.Current.Models.PartyWageModel.MaxWage);
                 });
         }
 
@@ -45,7 +45,6 @@ namespace BannerKings.Components
             reference.PrisonRoster.RemoveIf(roster => roster.Number > 0);
             GiveMounts(ref caravan);
             GiveFood(ref caravan);
-            BannerKingsConfig.Instance.PopulationManager.AddParty(caravan);
         }
 
         public override void TickHourly()

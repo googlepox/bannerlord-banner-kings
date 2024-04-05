@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Linq;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.Localization;
@@ -38,19 +38,34 @@ namespace BannerKings.Managers.Cultures
 
         public CulturalTitleName GetTitleName(CultureObject culture, TitleType titleType)
         {
-            CulturalTitleName name = All.FirstOrDefault(x => x.Culture == culture && titleType == x.TitleType && !x.IsKnightsName && !x.IsPrinceName);
+            CulturalTitleName name = null;
+            if (culture != null)
+            {
+                name = All.FirstOrDefault(x => x.Culture != null && x.Culture.StringId == culture.StringId && titleType == x.TitleType && !x.IsKnightsName && !x.IsPrinceName);
+            }
+
             return name != null ? name : All.First(x => x.Culture == null && titleType == x.TitleType && !x.IsKnightsName && !x.IsPrinceName);
         }
 
         public CulturalTitleName GetPrinceName(CultureObject culture)
         {
-            CulturalTitleName name = All.FirstOrDefault(x => x.Culture == culture && !x.IsKnightsName && x.IsPrinceName);
+            CulturalTitleName name = null;
+            if (culture != null)
+            {
+                name = All.FirstOrDefault(x => x.Culture != null && x.Culture.StringId == culture.StringId && !x.IsKnightsName && x.IsPrinceName);
+            }
+
             return name != null ? name : All.First(x => x.Culture == null && !x.IsKnightsName && x.IsPrinceName);
         }
 
         public CulturalTitleName GetKnightName(CultureObject culture)
         {
-            CulturalTitleName name = All.FirstOrDefault(x => x.Culture == culture && x.IsKnightsName && !x.IsPrinceName);
+            CulturalTitleName name = null;
+            if (culture != null)
+            {
+                name = All.FirstOrDefault(x => x.Culture != null && x.Culture.StringId == culture.StringId && x.IsKnightsName && !x.IsPrinceName);
+            }
+
             return name != null ? name : All.First(x => x.Culture == null && x.IsKnightsName && !x.IsPrinceName);
         }
 
@@ -60,7 +75,7 @@ namespace BannerKings.Managers.Cultures
                 null,
                 new TextObject("{=9WOQTiBr}Emperor"),
                 new TextObject("{=gbpokx6s}Empress"),
-                new TextObject("{=!}Empire"));
+                new TextObject("Empire"));
 
             DefaultKing = CulturalTitleName.CreateKingdom("DefaultKing",
                 null,
@@ -96,7 +111,7 @@ namespace BannerKings.Managers.Cultures
                 null,
                 new TextObject("{=V219eHY6}Prince"),
                 new TextObject("{=e7Nhe2YX}Princess"),
-                new TextObject("{=!}Princes"));
+                new TextObject("{=UZNcONWY}Princes"));
 
             DefaultKnight = CulturalTitleName.CreateKnight("DefaultKnight",
                 null,

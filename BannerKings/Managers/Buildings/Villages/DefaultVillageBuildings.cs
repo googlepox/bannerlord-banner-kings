@@ -58,13 +58,14 @@ namespace BannerKings.Managers.Populations.Villages
                 yield return Marketplace;
                 yield return Bakery;
                 yield return TaxOffice;
+                yield return Mill;
             }
         }
 
         public override void Initialize()
         {
-            Mill.Initialize(new TextObject("{=!}Mill"),
-                new TextObject("{=!}Construct a mill, used to grind grains for breadmaking. Increases bread production (50%, 100%, 150%)."),
+            Mill.Initialize(new TextObject("{=U3t7G7aB}Mill"),
+                new TextObject("{=kyB8tkgY}Construct a mill, used to grind grains for breadmaking. Increases bread production (50%, 100%, 150%)."),
                 new[]
                 {
                     1800,
@@ -313,7 +314,7 @@ namespace BannerKings.Managers.Populations.Villages
             yield return Instance.TaxOffice;
 
             InnovationData data = BannerKingsConfig.Instance.InnovationsManager.GetInnovationData(village.Settlement.Culture);
-            if (data.HasFinishedInnovation(DefaultInnovations.Instance.Mills))
+            if (data != null && data.HasFinishedInnovation(DefaultInnovations.Instance.Mills))
             {
                 yield return Instance.Mill;
             }

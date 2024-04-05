@@ -21,7 +21,7 @@ namespace BannerKings.Managers.Goals.Decisions
 
             Initialize(name, description);
 
-            behavior = Campaign.Current.GetCampaignBehavior<BKEducationBehavior>();
+            behavior = TaleWorlds.CampaignSystem.Campaign.Current.GetCampaignBehavior<BKEducationBehavior>();
         }
 
         public override bool IsAvailable() => true;
@@ -79,6 +79,7 @@ namespace BannerKings.Managers.Goals.Decisions
                 .ToString(),
                 elements, 
                 true, 
+                1,
                 1, 
                 GameTexts.FindText("str_done").ToString(),
                 GameTexts.FindText("str_cancel").ToString(),

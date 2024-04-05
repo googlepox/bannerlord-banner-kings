@@ -39,10 +39,10 @@ namespace BannerKings.Behaviours.Criminality
             {
                 foreach (var clan in crime.Kingdom.Clans)
                 {
-                    if (!clan.IsEliminated && !clan.IsBanditFaction && clan != Clan.PlayerClan && clan != CampaignData.NeutralFaction)
+                    if (!clan.IsEliminated && !clan.IsBanditFaction && clan != Clan.PlayerClan)
                     {
                         bool affectRelatives;
-                        int relationChangeForExecutingHero = Campaign.Current.Models.ExecutionRelationModel
+                        int relationChangeForExecutingHero = TaleWorlds.CampaignSystem.Campaign.Current.Models.ExecutionRelationModel
                             .GetRelationChangeForExecutingHero(crime.Hero, clan.Leader, out affectRelatives);
                         if (relationChangeForExecutingHero != 0)
                         {
@@ -55,7 +55,7 @@ namespace BannerKings.Behaviours.Criminality
                 }
             }
 
-            BKCriminalityBehavior behavior = Campaign.Current.GetCampaignBehavior<BKCriminalityBehavior>();
+            BKCriminalityBehavior behavior = TaleWorlds.CampaignSystem.Campaign.Current.GetCampaignBehavior<BKCriminalityBehavior>();
             behavior.FinishCrime(crime);
         }
     }

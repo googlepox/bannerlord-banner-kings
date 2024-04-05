@@ -1,12 +1,16 @@
 using System.Collections.Generic;
+using BannerKings.Campaign.Skills;
 using BannerKings.Managers.Education.Books;
 using BannerKings.Managers.Education.Languages;
 using BannerKings.Managers.Education.Lifestyles;
+using BannerKings.Managers.Innovations;
 using BannerKings.Managers.Institutions.Religions;
+using BannerKings.Managers.Institutions.Religions.Doctrines;
 using BannerKings.Managers.Populations;
 using BannerKings.Managers.Skills;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.CharacterDevelopment;
+using TaleWorlds.Core;
 using TaleWorlds.Library;
 using TaleWorlds.Localization;
 using TaleWorlds.SaveSystem;
@@ -81,9 +85,9 @@ namespace BannerKings.Managers.Education
         }
 
         [field: SaveableField(7)] public Hero LanguageInstructor { get; private set; }
-
         [field: SaveableField(4)] public Lifestyle Lifestyle { get; private set; }
         [field: SaveableField(9)] public float LifestyleProgress { get; private set; }
+        [field: SaveableField(10)] public Innovation Research { get; private set; }
 
         public void ResetProgress()
         {
@@ -92,7 +96,19 @@ namespace BannerKings.Managers.Education
 
         public void AddProgress(float progress)
         {
-            LifestyleProgress = MBMath.ClampFloat(LifestyleProgress + progress, 0f, 1f);
+            float result = MBMath.ClampFloat(LifestyleProgress + progress, 0f, 1f);
+            float current = LifestyleProgress;
+            LifestyleProgress = result;
+
+            if (result >= 1f && current < 1f)
+            {
+                Religion religion = BannerKingsConfig.Instance.ReligionsManager.GetHeroReligion(hero);
+                if (religion != null && religion.HasDoctrine(DefaultDoctrines.Instance.Esotericism))
+                {
+                    BannerKingsConfig.Instance.ReligionsManager.AddPiety(hero, 100, true);
+                    hero.AddSkillXp(BKSkills.Instance.Theology, 500);
+                }
+            }
         }
 
         public MBReadOnlyDictionary<Language, float> Languages => languages.GetReadOnlyDictionary();
@@ -102,7 +118,7 @@ namespace BannerKings.Managers.Education
 
         public ExplainedNumber CurrentBookReadingRate => BannerKingsConfig.Instance.EducationModel.CalculateBookReadingRate(CurrentBook, hero);
 
-        public float StandartLifestyleProgress => 1f / (CampaignTime.DaysInYear * 3f);
+        public ExplainedNumber CurrentLifestyleRate => BannerKingsConfig.Instance.EducationModel.CalculateLifestyleProgress(hero);
 
         public void PostInitialize()
         {
@@ -188,11 +204,6 @@ namespace BannerKings.Managers.Education
             }
         }
 
-        public bool IsBookRead(BookType type)
-        {
-            return books.ContainsKey(type) && books[type] >= 1f;
-        }
-
         public float GetLanguageFluency(Language language)
         {
             if (languages.ContainsKey(language))
@@ -221,10 +232,17 @@ namespace BannerKings.Managers.Education
                             .ToString()));
                 }
 
-                hero.AddSkillXp(BKSkills.Instance.Scholarship, 200);
+                hero.AddSkillXp(BKSkills.Instance.Scholarship, 2000);
+
+                Religion religion = BannerKingsConfig.Instance.ReligionsManager.GetHeroReligion(hero);
+                if (religion != null && religion.HasDoctrine(DefaultDoctrines.Instance.Esotericism))
+                {
+                    BannerKingsConfig.Instance.ReligionsManager.AddPiety(hero, 100, true);
+                    hero.AddSkillXp(BKSkills.Instance.Theology, 500);
+                }
             }
 
-            hero.AddSkillXp(BKSkills.Instance.Scholarship, MBMath.ClampInt((int)result, 5, 10));
+            hero.AddSkillXp(BKSkills.Instance.Scholarship, 50);
         }
 
         public void GainBookReading(BookType book, float rate)
@@ -245,10 +263,49 @@ namespace BannerKings.Managers.Education
                             .ToString()));
                 }
 
-                hero.AddSkillXp(BKSkills.Instance.Scholarship, 200);
+                hero.AddSkillXp(BKSkills.Instance.Scholarship, 2000);
+
+                Religion religion = BannerKingsConfig.Instance.ReligionsManager.GetHeroReligion(hero);
+                if (religion != null && religion.HasDoctrine(DefaultDoctrines.Instance.Esotericism))
+                {
+                    BannerKingsConfig.Instance.ReligionsManager.AddPiety(hero, 100, true);
+                    hero.AddSkillXp(BKSkills.Instance.Theology, 500);
+                }
             }
 
-            hero.AddSkillXp(BKSkills.Instance.Scholarship, MBMath.ClampInt((int)result, 5, 10));
+            hero.AddSkillXp(BKSkills.Instance.Scholarship, 50);
+        }
+
+        public float ResearchProgress
+        {
+            get
+            {
+                float progress = 0f;
+                progress += BKSkillEffects.Instance.ResearchSpeed.GetPrimaryValue(hero.GetSkillValue(BKSkills.Instance.Scholarship));
+                progress += hero.GetAttributeValue(DefaultCharacterAttributes.Intelligence) * 0.10f;
+                return progress;
+            }
+        }
+
+        public void GainResearch(float progress)
+        {
+            Research.AddProgress(progress);
+            hero.AddSkillXp(BKSkills.Instance.Scholarship, 50);
+            hero.AddSkillXp(Research.ResearchSkill, 25);
+        }
+
+        public void SetResearch(Innovation i)
+        {
+            Research = i;
+            if (hero.Clan == Clan.PlayerClan)
+            {
+                InformationManager.DisplayMessage(new InformationMessage(
+                    new TextObject("{=7SrQncCu}{HERO} research project is now {RESEARCH}.")
+                    .SetTextVariable("HERO", hero.Name)
+                    .SetTextVariable("RESEARCH", i.Name)
+                    .ToString(),
+                    Color.FromUint(Utils.TextHelper.COLOR_LIGHT_BLUE)));
+            }
         }
 
         internal override void Update(PopulationData data)
@@ -275,6 +332,27 @@ namespace BannerKings.Managers.Education
                 return;
             }
 
+            if (Research != null)
+            {
+                if (!Research.Finished)
+                {
+                    GainResearch(ResearchProgress);
+                }
+                else
+                {
+                    if (hero.Clan == Clan.PlayerClan)
+                    {
+                        InformationManager.DisplayMessage(new InformationMessage(
+                            new TextObject("{=bfzcDHdP}{HERO} has stopped researching {RESEARCH}: innovation is fully researched.")
+                            .SetTextVariable("HERO", hero.Name)
+                            .SetTextVariable("RESEARCH", Research.Name)
+                            .ToString(),
+                            Color.FromUint(Utils.TextHelper.COLOR_LIGHT_YELLOW)));
+                    }
+                    Research = null;
+                }
+            }
+
             if (CurrentLanguage != null && LanguageInstructor != null)
             {
                 GainLanguageFluency(CurrentLanguage, CurrentLanguageLearningRate.ResultNumber);
@@ -295,7 +373,7 @@ namespace BannerKings.Managers.Education
 
             if (Lifestyle != null)
             {
-                AddProgress(StandartLifestyleProgress);
+                AddProgress(CurrentLifestyleRate.ResultNumber);
                 hero.AddSkillXp(BKSkills.Instance.Scholarship, 5f);
             }
         }

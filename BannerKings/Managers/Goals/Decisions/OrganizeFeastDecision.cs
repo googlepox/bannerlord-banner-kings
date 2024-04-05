@@ -50,7 +50,7 @@ namespace BannerKings.Managers.Goals.Decisions
                 failedReasons.Add(new TextObject("{=gn6WKs03}Cannot organize feasts during wars"));
             }
 
-            CampaignTime lastFeast = Campaign.Current.GetCampaignBehavior<BKFeastBehavior>().LastHeroFeast(GetFulfiller());
+            CampaignTime lastFeast = TaleWorlds.CampaignSystem.Campaign.Current.GetCampaignBehavior<BKFeastBehavior>().LastHeroFeast(GetFulfiller());
             if (lastFeast.ElapsedYearsUntilNow < 1f)
             {
                 failedReasons.Add(new TextObject("{=4Gqf2t8F}It has been less than a year since your last feast"));
@@ -104,7 +104,7 @@ namespace BannerKings.Managers.Goals.Decisions
                     continue;
                 }
 
-                var busy = Campaign.Current.GetCampaignBehavior<BKFeastBehavior>().IsClanBusy(clan);
+                var busy = TaleWorlds.CampaignSystem.Campaign.Current.GetCampaignBehavior<BKFeastBehavior>().IsClanBusy(clan);
                 if (busy)
                 {
                     continue;
@@ -124,6 +124,7 @@ namespace BannerKings.Managers.Goals.Decisions
                 list,
                 false,
                 1,
+                1,
                 GameTexts.FindText("str_accept").ToString(),
                 String.Empty,
                 delegate (List<InquiryElement> list)
@@ -135,6 +136,7 @@ namespace BannerKings.Managers.Goals.Decisions
                         new TextObject("{=S9S5PCrP}Choose the guests for your feast. Pick at least 3 different clans from your realm. Mind you, guests will have expectations. They will want food in large variety, of good quality and plentiful. They will also expect a lot of alcohol, and the host to be present.").ToString(),
                         clanList,
                         false,
+                        1,
                         clanList.Count,
                         GameTexts.FindText("str_accept").ToString(),
                         String.Empty,
@@ -179,7 +181,7 @@ namespace BannerKings.Managers.Goals.Decisions
             }
 
             GainKingdomInfluenceAction.ApplyForDefault(GetFulfiller(), -influenceCost);
-            Campaign.Current.GetCampaignBehavior<BKFeastBehavior>().LaunchFeast(feastPlace, guests, null, type);
+            TaleWorlds.CampaignSystem.Campaign.Current.GetCampaignBehavior<BKFeastBehavior>().LaunchFeast(feastPlace, guests, null, type);
         }
 
         public override void DoAiDecision()
@@ -201,7 +203,7 @@ namespace BannerKings.Managers.Goals.Decisions
                 return;
             }
 
-            var behavior = Campaign.Current.GetCampaignBehavior<BKFeastBehavior>();
+            var behavior = TaleWorlds.CampaignSystem.Campaign.Current.GetCampaignBehavior<BKFeastBehavior>();
             if (behavior.KingdomHasFeast(fulfiller.Clan.Kingdom))
             {
                 return;
